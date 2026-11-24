@@ -1,0 +1,14 @@
+{
+  "name": "@reinas/cli",
+  "version": "0.1.0",
+  "private": true,
+  "bin": {
+    "controller": "./src/main.ts"
+  },
+  "type": "module",
+  "dependencies": {
+    "@reinas/core": "workspace:*",
+    "@reinas/server": "workspace:*",
+    "@reinas/shared": "workspace:*"
+  }
+}

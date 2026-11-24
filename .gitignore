@@ -1,0 +1,28 @@
+# 依赖
+node_modules/
+.bun/
+
+# 构建产物
+dist/
+public/
+*.tsbuildinfo
+
+# 编译出的二进制
+controller
+controller-*
+
+# 测试与覆盖率
+coverage/
+*.lcov
+
+# 编辑器 / 系统
+.DS_Store
+*.swp
+*~
+
+# 本地环境
+.env
+.env.local
+
+# lefthook 生成的钩子不提交（用 bunx lefthook install 装）
+.lefthook/

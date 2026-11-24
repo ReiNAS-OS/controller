@@ -1,0 +1,27 @@
+# lefthook 配置
+# 装钩子：bunx lefthook install
+#
+# 为什么有这些：controller 是要打进 NAS 镜像的，一个类型错误或 lint 错误
+# 意味着镜像构建失败或运行时崩溃，代价是 15 分钟 + 一次完整重建。
+
+pre-commit:
+  parallel: true
+  commands:
+    fmt:
+      # 格式化改动的文件。oxfmt 直接写回，所以失败不阻断提交。
+      glob: "*.{ts,tsx,js,jsx,json}"
+      run: bunx oxfmt {staged_files}
+      stage_fixed: true
+
+    lint:
+      glob: "*.{ts,tsx}"
+      run: bunx oxlint --type-aware {staged_files}
+
+pre-push:
+  commands:
+    typecheck:
+      # 全项目类型检查。tsrs 比 tsc 快 3-7 倍，放 pre-push 可以接受。
+      run: bun run check
+
+    test:
+      run: bun test

@@ -1,0 +1,54 @@
+/**
+ * 错误码。
+ *
+ * 用字符串而不是数字：日志里能一眼看出是什么错，前端也不用维护一张映射表。
+ * 分层：前两位表示域，后两位序号。
+ *
+ *   CFG  配置与启动
+ *   SYS  系统信息
+ *   STO  存储
+ *   SHR  共享
+ *   USR  用户
+ *   DIS  磁盘
+ *   PRM  权限
+ */
+
+export const ErrorCode = {
+  // 配置与启动
+  CFG_INVALID: "CFG_INVALID",
+  CFG_MISSING: "CFG_MISSING",
+
+  // 系统信息
+  SYS_PROBE_FAILED: "SYS_PROBE_FAILED",
+  SYS_NOT_SUPPORTED: "SYS_NOT_SUPPORTED",
+
+  // 存储
+  STO_SUBVOLUME_EXISTS: "STO_SUBVOLUME_EXISTS",
+  STO_SUBVOLUME_NOT_FOUND: "STO_SUBVOLUME_NOT_FOUND",
+  STO_SUBVOLUME_BUSY: "STO_SUBVOLUME_BUSY",
+  STO_SNAPSHOT_FAILED: "STO_SNAPSHOT_FAILED",
+  STO_NOT_BTRFS: "STO_NOT_BTRFS",
+
+  // 共享
+  SHR_CONFIG_INVALID: "SHR_CONFIG_INVALID",
+  SHR_NAME_CONFLICT: "SHR_NAME_CONFLICT",
+  SHR_RELOAD_FAILED: "SHR_RELOAD_FAILED",
+
+  // 用户
+  USR_NOT_FOUND: "USR_NOT_FOUND",
+  USR_ALREADY_EXISTS: "USR_ALREADY_EXISTS",
+  USR_RESERVED_NAME: "USR_RESERVED_NAME",
+
+  // 磁盘
+  DIS_NOT_FOUND: "DIS_NOT_FOUND",
+  DIS_SMART_UNAVAILABLE: "DIS_SMART_UNAVAILABLE",
+
+  // 权限
+  PRM_DENIED: "PRM_DENIED",
+  PRM_SUDO_REQUIRED: "PRM_SUDO_REQUIRED",
+
+  // 兜底
+  INTERNAL: "INTERNAL",
+} as const;
+
+export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
