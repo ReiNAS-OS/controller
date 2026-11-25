@@ -57,6 +57,7 @@ bun run dev                              # 单进程 5090，前端 HMR
 bun run build                            # turbo 编排全部构建
 TARGET=bun-darwin-arm64 bun run build    # 本机调试
 bun run lint / lint:fix / fmt            # 检查 / 修复 / 格式化
+bun run test:linux                       # 在 fedora:45 容器里验证（5 秒）
 ```
 
 **所有根命令只调 turbo 或工具**，不直接跨包执行子模块的脚本。
@@ -92,10 +93,16 @@ dev 和生产访问同一个 URL（5090），不会出现「开发开 5174，部
    同时兼容源码运行和编译形态，见 `packages/server/src/index.ts` 的
    `resolvePublicDir`。
 
-4. **本地 macOS 跑通不代表 Fedora 跑通。** 二进制要在 QEMU 里验过才能接进
-   os 镜像。流程见 `docs/testing.md`。
+4. **不要依赖 `uname` / `hostname` 这类外部命令。** 最小 Fedora 容器里没有
+   coreutils，会 `ENOENT`。优先读 `/proc`：主机名
+   `/proc/sys/kernel/hostname`、内核 `/proc/sys/kernel/osrelease`、架构用
+   `process.arch`。
 
-5. **不要安装原版 `typescript`。** 类型检查走 `tsrs`，两者诊断有
+5. **本地 macOS 跑通不代表 Fedora 跑通。** 用 `bun run test:linux` 在
+   fedora:45 容器里测（5 秒）。只有验证 systemd / SELinux / 首启扩盘才需要
+   完整 QEMU，那要 5-15 分钟。见 `docs/testing.md`。
+
+6. **不要安装原版 `typescript`。** 类型检查走 `tsrs`，两者诊断有
    细微差异，混用会看到不同的报错。elysia 把 typescript 声明成 optional
    peer，缺了不影响。
 
@@ -145,5 +152,5 @@ LLM 用的文档索引，列出全部页面的 markdown 直链（`.html` 换 `.m
 - `docs/api.md` — API 版本策略、响应形状、Eden 的硬要求
 - `docs/lint-rules.md` — 完整 lint 规则与 import 约束
 - `docs/decisions.md` — 结构决策（D-001 起）
-- `docs/testing.md` — 在 QEMU 里验证二进制
+- `docs/testing.md` — 两层验证：容器（快）/ QEMU（完整）
 - `../os/docs/decisions-panel.md` — 为什么移除 Cockpit、与镜像怎么对接

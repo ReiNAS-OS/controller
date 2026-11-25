@@ -73,6 +73,17 @@ export async function getMemory(): Promise<MemoryInfo> {
   };
 }
 
+/** 架构。没有 /proc 接口，只能靠 uname 或 Node 的 process.arch。 */
+async function getArch(): Promise<string> {
+  const fromProcess = process.arch;
+  if (fromProcess) {
+    // bun 的 process.arch 是 "x64"/"arm64"，转成 uname 风格
+    return fromProcess === "x64" ? "x86_64" : fromProcess;
+  }
+  const out = await run(["uname", "-m"]).catch(() => null);
+  return out?.stdout.trim() ?? "unknown";
+}
+
 export interface LoadAverage {
   one: number;
   five: number;
@@ -90,6 +101,22 @@ export async function getLoadAverage(): Promise<LoadAverage> {
   };
 }
 
+/**
+ * 主机名。
+ *
+ * 优先读 /proc/sys/kernel/hostname（内核接口，任何 Linux 都有），读不到才
+ * 退回 hostname 命令。最小容器镜像里没有 `hostname` 包，直接依赖命令会在
+ * fedora:45 这类镜像上报 ENOENT。
+ */
+export async function getHostname(): Promise<string> {
+  const fromProc = await readFile("/proc/sys/kernel/hostname", "utf8").catch(() => "");
+  if (fromProc.trim()) {
+    return fromProc.trim();
+  }
+  const out = await run(["hostname"]).catch(() => null);
+  return out?.stdout.trim() ?? "unknown";
+}
+
 export interface SystemOverview {
   hostname: string;
   kernel: string;
@@ -103,17 +130,16 @@ export interface SystemOverview {
 /** 系统概览。M1 阶段首页要显示的东西。 */
 export async function getOverview(): Promise<SystemOverview> {
   // /proc 只在 Linux 上有。macOS 开发时读不到，退化成 0 而不是崩掉整个命令。
-  const [uname, uptimeRaw] = await Promise.all([
-    run(["uname", "-srm"]),
+  // 全部读 /proc，不依赖 uname 命令。最小容器镜像里可能没装 coreutils。
+  const [kernel, arch, uptimeRaw] = await Promise.all([
+    readFile("/proc/sys/kernel/osrelease", "utf8").catch(() => ""),
+    getArch(),
     readFile("/proc/uptime", "utf8").catch(() => ""),
   ]);
 
-  // uname -srm 输出形如 "Linux 7.3.4-300.fc45.x86_64 x86_64"
-  const [kernel = "", arch = ""] = uname.stdout.trim().split(/\s+/).slice(1);
-
   return {
-    hostname: (await run(["hostname"])).stdout.trim(),
-    kernel,
+    hostname: await getHostname(),
+    kernel: kernel.trim() || "unknown",
     arch,
     uptimeSeconds: Math.floor(Number(uptimeRaw.split(/\s+/)[0] ?? 0)),
     bootTime: await getBootTime(),

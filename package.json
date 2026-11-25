@@ -15,11 +15,12 @@
     "fmt": "oxfmt .",
     "fmt:check": "oxfmt --check .",
     "test": "bun test --pass-with-no-tests",
-    "vm:prepare": "bash scripts/vm-test.sh prepare",
-    "vm:run": "bash scripts/vm-test.sh run",
-    "vm:serve": "bash scripts/vm-test.sh serve",
-    "vm:check": "bash scripts/vm-test.sh check",
-    "vm:clean": "bash scripts/vm-test.sh clean"
+    "test:linux": "bash scripts/container-test.sh",
+    "test:vm-prepare": "bash scripts/vm-test.sh prepare",
+    "test:vm-run": "bash scripts/vm-test.sh run",
+    "test:vm-serve": "bash scripts/vm-test.sh serve",
+    "test:vm-check": "bash scripts/vm-test.sh check",
+    "test:vm-clean": "bash scripts/vm-test.sh clean"
   },
   "dependencies": {
     "@elysia/eden": "^1.4.10",
