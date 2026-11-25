@@ -30,6 +30,9 @@
         "@reinas/server": "workspace:*",
         "@reinas/shared": "workspace:*",
       },
+      "devDependencies": {
+        "@reinas/web": "workspace:*",
+      },
     },
     "packages/core": {
       "name": "@reinas/core",

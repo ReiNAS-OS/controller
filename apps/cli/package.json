@@ -7,12 +7,15 @@
   },
   "type": "module",
   "scripts": {
-    "build": "echo \"cli: 由根 scripts/build.ts 编译成二进制\"",
-    "dev": "bun --watch src/main.ts serve"
+    "dev": "bun --watch src/main.ts serve --dev",
+    "build": "TARGET=${TARGET:-bun-linux-x64} bun run scripts/build.ts"
   },
   "dependencies": {
     "@reinas/core": "workspace:*",
     "@reinas/server": "workspace:*",
     "@reinas/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@reinas/web": "workspace:*"
   }
 }

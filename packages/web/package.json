@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "bun run ../../scripts/build-web.ts"
+    "build": "bun run scripts/build.ts"
   },
   "dependencies": {
     "@reinas/shared": "workspace:*",

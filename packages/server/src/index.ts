@@ -3,7 +3,7 @@
  *
  * 两种运行形态共用同一套路由定义：
  *
- *   生产  Elysia 直接 listen，静态文件从 public/ 读（编译时嵌入二进制）
+ *   生产  Elysia 直接 listen，静态文件从嵌入的 dist/ 读
  *   dev   Bun.serve 的 routes 分发：/api/* 交给 Elysia，其余交给 Bun 的
  *         HTML 入口（自带 HMR）
  *
@@ -36,9 +36,12 @@ export interface ServeOptions {
  * 找前端产物目录。
  *
  * 三种运行形态路径不一样：
- *   源码运行      packages/server/src/ → 往上三级是仓库根的 public/
- *   bun compile   import.meta.dir 是 /$bunfs/root，嵌入的资源在它下面的 public/
+ *   源码运行      packages/server/src/ → 往上两级到仓库根，再到 packages/web/dist
+ *   bun compile   import.meta.dir 是 /$bunfs/root，assets 嵌在它下面的 dist/
  *   显式指定      由环境变量 PUBLIC_DIR 覆盖
+ *
+ * bun compile 的目录名取决于构建时 assets 指向的目录名（这里是 web/dist →
+ * 嵌入后叫 dist）。
  */
 export function resolvePublicDir(explicit?: string): string | null {
   const fromEnv = process.env["PUBLIC_DIR"];
@@ -46,8 +49,8 @@ export function resolvePublicDir(explicit?: string): string | null {
     ? [explicit]
     : [
         ...(fromEnv ? [fromEnv] : []),
-        join(import.meta.dir, "public"), // bun compile：/$bunfs/root/public
-        join(import.meta.dir, "../../../public"), // 源码运行
+        join(import.meta.dir, "dist"), // bun compile：/$bunfs/root/dist
+        join(import.meta.dir, "../../web/dist"), // 源码运行
       ];
 
   for (const dir of candidates) {

@@ -2,14 +2,12 @@
 node_modules/
 .bun/
 
-# 构建产物
+# 构建产物（各包自己的 dist/）
 dist/
-public/
 *.tsbuildinfo
 
-# 编译出的二进制
-controller
-controller-*
+# turbo 缓存
+.turbo/
 
 # 测试与覆盖率
 coverage/
@@ -26,4 +24,3 @@ coverage/
 
 # lefthook 生成的钩子不提交（用 bunx lefthook install 装）
 .lefthook/
-.turbo

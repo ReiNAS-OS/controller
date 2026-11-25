@@ -8,11 +8,8 @@
   ],
   "type": "module",
   "scripts": {
-    "dev": "bun --watch apps/cli/src/main.ts serve --dev",
-    "build": "turbo run build && bun run compile",
-    "build:web": "bun run --cwd packages/web build",
-    "compile": "TARGET=${TARGET:-bun-linux-x64} bun run scripts/build.ts",
-    "check": "oxlint --type-aware --type-check",
+    "dev": "turbo run dev",
+    "build": "turbo run build",
     "lint": "oxlint --type-aware --type-check",
     "lint:fix": "oxlint --type-aware --type-check --fix --fix-suggestions",
     "fmt": "oxfmt .",

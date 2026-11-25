@@ -7,9 +7,6 @@
   "exports": {
     ".": "./src/index.ts"
   },
-  "scripts": {
-    "build": "echo \"core: 无构建产物\""
-  },
   "dependencies": {
     "@reinas/shared": "workspace:*"
   }

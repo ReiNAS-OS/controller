@@ -27,7 +27,9 @@
   },
   "include": [
     "packages/*/src/**/*",
+    "packages/*/scripts/**/*",
     "apps/*/src/**/*",
+    "apps/*/scripts/**/*",
     "scripts/**/*",
     "*.config.ts",
     "types/**/*"

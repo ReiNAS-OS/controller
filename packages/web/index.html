@@ -7,6 +7,13 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <!--
+      指向源码，不是构建产物。
+
+      Bun 的全栈 dev server 会读这个 HTML，把里面的 script 当模块入口转译，
+      并注入 HMR 客户端。生产构建时同样从这个入口打包，产物落到仓库根的
+      public/。
+    -->
+    <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>

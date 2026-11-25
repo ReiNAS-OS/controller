@@ -2,39 +2,18 @@
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
   "tasks": {
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["public/**", "dist/**"]
-    },
-    "check": {
-      "dependsOn": ["^build"],
-      "outputs": []
+      "outputs": ["dist/**"]
     },
     "lint": {
       "outputs": []
     },
     "fmt": {
-      "outputs": []
-    },
-    "dev": {
-      "cache": false,
-      "persistent": true,
-      "dependsOn": []
-    },
-    "build:web": {
-      "dependsOn": ["^build"],
-      "outputs": ["public/**"]
-    },
-    "@reinas/shared#build": {
-      "outputs": []
-    },
-    "@reinas/core#build": {
-      "outputs": []
-    },
-    "@reinas/cli#build": {
-      "outputs": []
-    },
-    "@reinas/server#build": {
       "outputs": []
     }
   }

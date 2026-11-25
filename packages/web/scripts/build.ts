@@ -1,20 +1,21 @@
 /**
- * 构建前端产物到仓库根的 public/。
+ * 构建前端产物到本包的 dist/。
  *
- * 入口是 packages/web/public/index.html——和生产 dev server 用的是同一个文件。
- * Bun 的打包器读 HTML，把里面引用的 .tsx 打成一个 bundle，产出到 outdir。
+ * 入口是包内的 index.html——和生产 dev server 用的是同一个文件。Bun 的打包器
+ * 读 HTML，把里面引用的 .tsx 打成一个 bundle，产出到 dist/。
  *
- * 为什么不保留 Vite：Bun 自带的打包器和 dev server 已经覆盖了需求（HMR、
- * React、CSS），多一个 Vite 就多一套配置要和 dev 行为对齐。少一个依赖少一类
- * "dev 和生产不一致" 的问题。
+ * **产物放在包内而不是仓库根**：turbo 只能缓存和恢复「包目录下」的 outputs。
+ * 产物落在仓库根时，turbo 缓存命中只重放日志、不恢复文件，删掉产物再构建会
+ * 得到空目录。放在这里 turbo 会正确缓存和恢复。
  */
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
-const root = join(import.meta.dir, "..");
-const entry = join(root, "packages/web/public/index.html");
-const outdir = join(root, "public");
+// 脚本在 packages/web/scripts/，包根是上一级
+const pkgRoot = join(import.meta.dir, "..");
+const entry = join(pkgRoot, "index.html");
+const outdir = join(pkgRoot, "dist");
 
 if (!existsSync(entry)) {
   console.error(`找不到前端入口: ${entry}`);

@@ -9,6 +9,11 @@
 pre-commit:
   parallel: false
   commands:
+    size:
+      # 大文件会挤掉 agent 的上下文。超 20 KB 就拦下，要求按功能拆。
+      # 不传文件名 → 脚本自己读 git 暂存区。
+      run: bun run scripts/check-size.ts
+
     fmt:
       # 先格式化，修改回写暂存区。oxfmt 只管格式，不会改语义。
       glob: "*.{ts,tsx,js,jsx,json}"

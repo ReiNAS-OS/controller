@@ -21,18 +21,18 @@ import type { AppHandle } from "./index.ts";
 export interface DevServeOptions {
   port: number;
   hostname: string;
-  /** 前端 public 目录（含 index.html）。默认找 packages/web/public。 */
+  /** 前端包根（含 index.html）。默认找 packages/web。 */
   webRoot?: string;
 }
 
 export async function serveDev(options: DevServeOptions): Promise<void> {
-  const webPublic = options.webRoot ?? join(import.meta.dir, "../../web/public");
+  const webRoot = options.webRoot ?? join(import.meta.dir, "../../web");
 
   // HTML import：Bun 在这里做模块转译和 HMR 注入。
   // 动态 import 让路径可配置，同时不干扰生产编译。
   //
   // 类型用 Bun 的 HTMLBundle：导入 .html 得到的是它，可以直接放进 routes。
-  const mod = (await import(join(webPublic, "index.html"))) as { default: Bun.HTMLBundle };
+  const mod = (await import(join(webRoot, "index.html"))) as { default: Bun.HTMLBundle };
   const index = mod.default;
 
   const { createApp } = await import("./index.ts");

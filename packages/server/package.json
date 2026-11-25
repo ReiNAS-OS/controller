@@ -7,9 +7,6 @@
   "exports": {
     ".": "./src/index.ts"
   },
-  "scripts": {
-    "build": "echo \"server: 无构建产物，由 cli 打包进二进制\""
-  },
   "dependencies": {
     "@reinas/core": "workspace:*",
     "@reinas/shared": "workspace:*",
