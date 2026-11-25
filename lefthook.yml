@@ -38,4 +38,6 @@ pre-push:
       run: bunx oxfmt --check .
 
     test:
-      run: bun test
+      # --pass-with-no-tests：还没有测试文件时不该阻断推送。
+      # 一有测试就自然生效，不需要改配置。
+      run: bun test --pass-with-no-tests

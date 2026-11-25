@@ -19,7 +19,7 @@
     "lint:fix": "oxlint --type-aware --type-check --fix --fix-suggestions",
     "fmt": "oxfmt .",
     "fmt:check": "oxfmt --check .",
-    "test": "bun test"
+    "test": "bun test --pass-with-no-tests"
   },
   "devDependencies": {
     "@types/bun": "^1.4.5",
