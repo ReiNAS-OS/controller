@@ -8,9 +8,7 @@
   ],
   "type": "module",
   "scripts": {
-    "dev": "turbo run dev",
-    "dev:server": "bun run --cwd apps/cli dev",
-    "dev:web": "bun run --cwd packages/web dev",
+    "dev": "bun --watch apps/cli/src/main.ts serve --dev",
     "build": "turbo run build && bun run compile",
     "build:web": "bun run --cwd packages/web build",
     "compile": "TARGET=${TARGET:-bun-linux-x64} bun run scripts/build.ts",
@@ -21,9 +19,13 @@
     "fmt:check": "oxfmt --check .",
     "test": "bun test --pass-with-no-tests"
   },
+  "dependencies": {
+    "@elysia/static": "^1.4.12"
+  },
   "devDependencies": {
     "@types/bun": "^1.4.5",
-    "babel-plugin-react-compiler": "^1.0.0",
+    "@types/react": "^19.3.1",
+    "@types/react-dom": "^19.3.0",
     "elysia": "^1.4.32",
     "lefthook": "^2.2.2",
     "oxfmt": "^0.80.0",

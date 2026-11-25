@@ -15,11 +15,28 @@ reinas serve                  → 监听 5090
   GET /api/health             → ok
   GET /api/system/overview    → 系统信息 JSON
 bun run build                 → turbo 编排 5 个包 + 交叉编译二进制
-bun run dev                   → 前后端各自热更新（5090 / 5174）
+bun run dev                   → 单进程 5090，前端 HMR + 后端热重载
 单文件分发                     → 二进制拷到任意目录启动，界面和静态资源都正常
 ```
 
 产物：交叉编译 `bun-linux-x64` 得到 105 MB ELF 二进制（含前端）。
+
+## 前端工具链：不用 Vite
+
+改用 Bun 1.3+ 自带的全栈 dev server。依据官方文档：
+https://elysiajs.com/patterns/fullstack-dev-server
+
+机制是 `Bun.serve` 的 `routes` 加 HTML import：Bun 读 index.html，把里面的
+`.tsx` 当模块入口转译，注入 HMR 客户端。前端源码直接跑，不需要先构建。
+
+实测结论：
+
+- dev 和生产同一个端口（5090）、同一个 URL
+- 改 .tsx 后重新请求 HTML，bundle hash 会变，新内容在里面
+- 生产二进制里搜不到 HMR 客户端的痕迹（dev.ts 是动态 import）
+
+省掉的东西：Vite、@vitejs/plugin-react、babel-plugin-react-compiler、
+vite.config.ts、vite-env.d.ts。前端依赖只剩 react / react-dom / @types/*。
 
 ## 结构上的决定
 

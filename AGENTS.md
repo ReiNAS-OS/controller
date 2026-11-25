@@ -27,7 +27,7 @@ Lint        oxlint（type-aware + type-check，由 tsrs 支撑）
 Format      oxfmt
 Git hooks   lefthook
 编排        turbo
-前端        Vite 8 + React 19 + React Compiler
+前端        React 19 + Bun 打包器（不用 Vite）
 ```
 
 **没有安装原版 `typescript`。** 类型检查全部走 `tsrs`。
@@ -39,7 +39,7 @@ apps/
   cli/      唯一入口。只做参数解析和命令分发，不写业务
 packages/
   server/   ElysiaJS 路由与响应包装，提供 HTTP 服务
-  web/      前端（Vite + React）
+  web/      前端（React）。public/index.html 指向源码，不是构建产物
   core/     业务逻辑，不依赖 HTTP。CLI 与 server 共用
   shared/   跨边界类型、错误码、常量
 public/     前端构建产物，编译时嵌入二进制
@@ -64,9 +64,7 @@ cli → shared
 
 ```bash
 bun install                              # 装依赖
-bun run dev                              # 前后端同时热更新（推荐）
-bun run dev:server                       # 只起后端（5090，bun --watch）
-bun run dev:web                          # 只起前端（5174，Vite HMR）
+bun run dev                              # 单进程，5090，前端 HMR + 后端自动重启
 bun run build                            # 前端 → public → 编译二进制
 TARGET=bun-darwin-arm64 bun run build    # 交叉编译（默认 linux-x64）
 bun run lint                             # oxlint，type-aware + type-check
@@ -77,22 +75,29 @@ bun run test                             # bun test
 
 ### dev 怎么工作
 
-`bun run dev` 用 turbo 并行跑两个常驻任务：
+**一个进程、一个端口。** `bun --watch apps/cli/src/main.ts serve --dev`：
 
 ```
-后端  bun --watch → 5090    改代码自动重启
-前端  Vite       → 5174     HMR，改代码不刷新页面
-
-浏览器开 http://127.0.0.1:5174
-  └─ Vite 把 /api 代理到 127.0.0.1:5090
+Bun.serve 的 routes
+  /api/*  →  Elysia 的 handle()
+  /*      →  packages/web/public/index.html（Bun 的 HTML import）
+                 └─ Bun 转译 .tsx、注入 HMR 客户端、改代码自动更新
 ```
 
-**为什么前端绑 127.0.0.1**：Vite 默认只监听 `::1`（IPv6），curl 和一部分
-浏览器走 IPv4 会连不上，表现为「Vite 说 ready 但打不开」。加 `--host 127.0.0.1`
-避开。
+**dev 和生产访问同一个 URL。** 不会出现「开发开 5174，部署后是 5090」的
+差异，反向代理和 cookie 域都不用改。
 
-**为什么端口是 5174 不是默认 5173**：5173 常被别的项目占。`--strictPort`
-保证端口被占时直接报错，而不是静默换一个让人找半天。
+实现要点（`packages/server/src/dev.ts`）：
+
+- 前端入口是 `packages/web/public/index.html`，里面 `<script src="../src/main.tsx">`
+  指向**源码**。Bun 读这个 HTML 自己转译，不需要预先构建。
+- `development: true` 才会启用 HMR 和 sourcemap。
+- 生产编译时 `dev.ts` 是动态 import，Bun 的 dev server 代码不会进二进制。
+  实测生产二进制里搜不到 HMR 客户端的痕迹。
+
+**为什么不用 Vite**：Bun 1.3+ 自带 dev server 和打包器，覆盖 HMR、React Fast
+Refresh、CSS。多一个 Vite 就多一套配置要和 dev 行为对齐，而「dev 和生产不
+一致」正是最容易出问题的地方。
 
 ## 代码规矩
 
@@ -140,8 +145,8 @@ bun run test                             # bun test
 跨包            "@reinas/core"                 ← 走包的公开出口
 ```
 
-`~` 指向**仓库根**，在 tsconfig 的 `paths` 和 Vite 的 `resolve.alias` 里各配了
-一份，必须保持一致。bun 运行时自动读 tsconfig 的 paths，不用额外配。
+`~` 指向**仓库根**，只配在 tsconfig 的 `paths` 里。bun 运行时、Bun 打包器、
+tsrs 都自动读它，不需要额外配置。
 
 **为什么不许 `../`**：一旦允许，目录一挪所有相对路径全断，而编辑器不会
 提醒你。用 `~` 和包名，挪目录时只改一处配置。
@@ -157,6 +162,26 @@ bun run test                             # bun test
   混用会看到不同的报错。
 - **提交被 lefthook 拒了，照报错改，不要 `--no-verify`。**
 - **改架构前先读 `docs/roadmap.md` 和 `STATUS.md`。**
+
+## 查 Elysia 文档
+
+**遇到任何 Elysia 相关的问题，先查这个地址：**
+
+https://elysiajs.com/llms.txt
+
+它是官方给 LLM 用的文档索引，列出全部页面的 markdown 直链（把 `.html` 换成
+`.md` 就是纯文本文档）。比搜索引擎快，而且是最新的。
+
+常用的几页：
+
+```
+patterns/fullstack-dev-server    Bun 自带的全栈 dev server（HMR，不用 Vite）
+patterns/mount                   把别的框架挂进 Elysia（Request/Response 互通）
+patterns/plugin                  插件与封装
+essential/route                  路由
+essential/life-cycle             生命周期钩子
+eden/overview                    Eden：端到端类型安全
+```
 
 ## 相关文档
 

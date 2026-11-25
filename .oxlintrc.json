@@ -68,8 +68,7 @@
     "unicorn/filename-case": [
       "error",
       {
-        "case": "kebabCase",
-        "ignore": ["^vite-env\\.d\\.ts$"]
+        "case": "kebabCase"
       }
     ],
     "react/exhaustive-deps": "error",

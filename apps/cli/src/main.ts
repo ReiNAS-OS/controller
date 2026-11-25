@@ -16,7 +16,10 @@ import { DEFAULT_PORT } from "@reinas/shared";
 const USAGE = `ReiNAS Controller ${getVersion()}
 
 用法:
-  controller serve [--port <n>] [--host <addr>]   启动 HTTP 服务
+  reinas serve [--port <n>] [--host <addr>] [--dev]
+                                                  启动 HTTP 服务
+                                                  --dev 用 Vite middleware，
+                                                  前端改动走 HMR
   controller info                                 打印系统信息
   controller --version                            版本号
   controller --help                               这份帮助
@@ -65,9 +68,11 @@ async function cmdServe(flags: Map<string, string>): Promise<void> {
     process.exit(1);
   }
 
+  const dev = flags.has("dev");
   await serve({
     port,
     hostname: flags.get("host") ?? "0.0.0.0",
+    dev,
   });
 
   // 服务靠事件循环活着，这里不 return——return 会让进程退出。

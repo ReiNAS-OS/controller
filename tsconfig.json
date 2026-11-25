@@ -5,12 +5,10 @@
     "moduleResolution": "bundler",
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "types": ["bun"],
-
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
-
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "esModuleInterop": true,
@@ -18,9 +16,7 @@
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,
-
     "jsx": "react-jsx",
-
     "paths": {
       "~/*": ["./*"],
       "@reinas/shared": ["./packages/shared/src/index.ts"],
@@ -29,6 +25,12 @@
       "@reinas/core/*": ["./packages/core/src/*"]
     }
   },
-  "include": ["packages/*/src/**/*", "apps/*/src/**/*", "scripts/**/*", "*.config.ts"],
+  "include": [
+    "packages/*/src/**/*",
+    "apps/*/src/**/*",
+    "scripts/**/*",
+    "*.config.ts",
+    "types/**/*"
+  ],
   "exclude": ["node_modules", "dist", "public"]
 }

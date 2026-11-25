@@ -24,7 +24,7 @@ Lint        oxlint    type-aware + type-check
 Format      oxfmt
 Git hooks   lefthook
 编排        turbo
-前端        Vite 8 + React 19 + React Compiler
+前端        React 19 + Bun 打包器（不用 Vite）
 ```
 
 ## 目录
@@ -48,6 +48,7 @@ scripts/    编译脚本
 
 ```bash
 bun install
+bun run dev                              # 单进程 5090，前端 HMR
 bun run build                            # 默认交叉编译 linux-x64
 TARGET=bun-darwin-arm64 bun run build    # 本机调试用
 ```
