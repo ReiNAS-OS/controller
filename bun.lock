@@ -5,6 +5,7 @@
     "": {
       "name": "reinas-controller",
       "dependencies": {
+        "@elysia/eden": "^1.4.10",
         "@elysia/static": "^1.4.12",
       },
       "devDependencies": {
@@ -58,14 +59,21 @@
       "name": "@reinas/web",
       "version": "0.1.0",
       "dependencies": {
+        "@elysia/eden": "^1.4.10",
         "@reinas/shared": "workspace:*",
         "react": "^19.3.1",
         "react-dom": "^19.3.1",
+      },
+      "devDependencies": {
+        "@reinas/server": "workspace:*",
+        "elysia": "^1.4.32",
       },
     },
   },
   "packages": {
     "@borewit/text-codec": ["@borewit/text-codec@0.2.3", "https://mirrors.tencent.com/npm/@borewit/text-codec/-/text-codec-0.2.3.tgz", {}, "sha512-49CycTz1aAZmvFcwkeFyhud1HUmRIB5Tabf7ALV+VA4Iu85MTfz2cUwzPagMFAdVBvrWdkCxG67I30tUwwpKsw=="],
+
+    "@elysia/eden": ["@elysia/eden@1.4.10", "https://mirrors.tencent.com/npm/@elysia/eden/-/eden-1.4.10.tgz", { "peerDependencies": { "elysia": ">=1.4.19" } }, "sha512-vcZXQcW6wZj6rhTxaiTkuCbVuS/yAJQ9jqCM6b83a5hu99F5Aj3HOyWXL17iod2Rz+pJpYsQGX0XaeoCsMpw2g=="],
 
     "@elysia/static": ["@elysia/static@1.4.12", "https://mirrors.tencent.com/npm/@elysia/static/-/static-1.4.12.tgz", { "peerDependencies": { "elysia": ">= 1.4.0" } }, "sha512-kJRsIxXqtgE+qSYyta+e5aXSQSMfIjmDmqw6x8sXmytcpZrulYmb5dHHc5tk3Bgcbf3zSwN17fQozFkq5CXAdw=="],
 

@@ -12,5 +12,14 @@ export const DEFAULT_PORT = 5090;
 /** 版本号。构建时由 bun 的 define 注入，开发时回退到这个值。 */
 export const VERSION = "0.1.0";
 
+/**
+ * API 版本号。路径里带 v1，是为了以后改接口时能加 /v2/ 并存过渡，
+ * 而不是直接破坏已有客户端（包括用户自己写的脚本）。
+ *
+ * 什么时候该加版本：改了已有端点的**语义**或响应形状。
+ * 什么时候不用加：只新增端点、只加字段（向后兼容）。
+ */
+export const API_VERSION = "v1";
+
 /** API 路由前缀。前端和后端都从这里取，避免两边写死不同路径。 */
-export const API_PREFIX = "/api";
+export const API_PREFIX = `/api/${API_VERSION}`;

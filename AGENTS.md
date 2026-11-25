@@ -92,7 +92,10 @@ dev 和生产访问同一个 URL（5090），不会出现「开发开 5174，部
    同时兼容源码运行和编译形态，见 `packages/server/src/index.ts` 的
    `resolvePublicDir`。
 
-4. **不要安装原版 `typescript`。** 类型检查走 `tsrs`，两者诊断有
+4. **本地 macOS 跑通不代表 Fedora 跑通。** 二进制要在 QEMU 里验过才能接进
+   os 镜像。流程见 `docs/testing.md`。
+
+5. **不要安装原版 `typescript`。** 类型检查走 `tsrs`，两者诊断有
    细微差异，混用会看到不同的报错。elysia 把 typescript 声明成 optional
    peer，缺了不影响。
 
@@ -102,6 +105,25 @@ dev 和生产访问同一个 URL（5090），不会出现「开发开 5174，部
 
 最常撞上的几条：`no-explicit-any`、`no-nested-ternary`、`complexity≤10`、
 `max-depth≤3`、文件名 kebab-case、hook 依赖必须完整、不许 `../` 跨目录 import。
+
+## API 与客户端
+
+**所有端点带 `/api/v1/` 前缀。** 端口和版本定义在
+`packages/shared/src/constants.ts`。改接口的语义或响应形状才加 `/v2/`，
+只新增端点或加字段不用——细节见 **[docs/api.md](docs/api.md)**。
+
+**前端不用手写 fetch，走 Eden。** `packages/web/src/api.ts` 导出 `api` 实例，
+类型从后端自动推出来：
+
+```ts
+const health = await unwrap(api.api.v1.health.get());
+```
+
+改了后端路由，前端编译就报不匹配。但有两个前提，破坏任何一个类型会静默退化
+成 `any`：
+
+1. 后端路由必须用方法链（`.get().get()`），不能分开调用
+2. 前后端 elysia 版本必须一致
 
 ## 查 Elysia 文档
 
@@ -120,5 +142,8 @@ LLM 用的文档索引，列出全部页面的 markdown 直链（`.html` 换 `.m
 
 - `STATUS.md` — 进度、下一步、待定事项
 - `docs/roadmap.md` — M0–M5 分阶段目标
+- `docs/api.md` — API 版本策略、响应形状、Eden 的硬要求
 - `docs/lint-rules.md` — 完整 lint 规则与 import 约束
+- `docs/decisions.md` — 结构决策（D-001 起）
+- `docs/testing.md` — 在 QEMU 里验证二进制
 - `../os/docs/decisions-panel.md` — 为什么移除 Cockpit、与镜像怎么对接

@@ -1,8 +1,15 @@
 /**
- * 路由定义。M0 只有健康检查，M1 会加系统概览、磁盘、存储。
+ * API 路由定义。
  *
- * 约定：路由函数只做两件事——调 core、包装响应。业务判断全在 core 里，
- * 这样 CLI 才能复用同一套逻辑。
+ * 两条硬约定：
+ *
+ * 1. **必须用方法链**。Elysia 的类型系统靠链式调用累积类型信息；拆成
+ *    多次 `app.get(...)` 调用，`typeof app` 就丢路由类型，前端 Eden 会推断成
+ *    any。这直接决定客户端有没有类型提示。
+ *
+ * 2. **这里的返回值类型就是客户端的类型**。`createApiRoutes` 的返回类型由
+ *    TS 自动推断，前端通过 `typeof createApiRoutes` 拿到它。所以不要手写
+ *    返回类型标注，也不要写 `: Elysia` 这种基类类型——会擦掉路由信息。
  */
 
 import { Elysia } from "elysia";
@@ -13,10 +20,10 @@ import { fromError, httpStatusFor, ok } from "./respond.ts";
 export function createApiRoutes() {
   return (
     new Elysia({ prefix: API_PREFIX })
-      // 健康检查。M0 阶段用它验证服务和前端能通。
+      // 健康检查。用它验证服务和前端能通，也用来探活。
       .get("/health", async () => ok(await getHealth()))
 
-      // 系统概览。M1 的第一块，只读，不需要特权。
+      // 系统概览。只读，不需要特权。
       .get("/system/overview", async ({ set }) => {
         try {
           return ok(await getOverview());
@@ -28,3 +35,15 @@ export function createApiRoutes() {
       })
   );
 }
+
+/**
+ * 给客户端用的类型。
+ *
+ * 前端 `import type { ApiApp } from "@reinas/server"` 之后：
+ *
+ *   treaty<ApiApp>(baseUrl)
+ *
+ * 就得到了完整类型提示。改后端路由，前端立刻能发现不匹配——不需要代码生成，
+ * 也不需要手工维护一份类型定义。
+ */
+export type ApiApp = ReturnType<typeof createApiRoutes>;

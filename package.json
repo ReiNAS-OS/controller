@@ -14,9 +14,15 @@
     "lint:fix": "oxlint --type-aware --type-check --fix --fix-suggestions",
     "fmt": "oxfmt .",
     "fmt:check": "oxfmt --check .",
-    "test": "bun test --pass-with-no-tests"
+    "test": "bun test --pass-with-no-tests",
+    "vm:prepare": "bash scripts/vm-test.sh prepare",
+    "vm:run": "bash scripts/vm-test.sh run",
+    "vm:serve": "bash scripts/vm-test.sh serve",
+    "vm:check": "bash scripts/vm-test.sh check",
+    "vm:clean": "bash scripts/vm-test.sh clean"
   },
   "dependencies": {
+    "@elysia/eden": "^1.4.10",
     "@elysia/static": "^1.4.12"
   },
   "devDependencies": {
