@@ -10,7 +10,6 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
-    "exactOptionalPropertyTypes": false,
 
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
@@ -20,8 +19,15 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
 
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+
+    "paths": {
+      "@reinas/shared": ["./packages/shared/src/index.ts"],
+      "@reinas/shared/*": ["./packages/shared/src/*"],
+      "@reinas/core": ["./packages/core/src/index.ts"],
+      "@reinas/core/*": ["./packages/core/src/*"]
+    }
   },
-  "include": ["packages/*/src/**/*", "apps/*/src/**/*"],
+  "include": ["packages/*/src/**/*", "apps/*/src/**/*", "scripts/**/*", "*.config.ts"],
   "exclude": ["node_modules", "dist", "public"]
 }

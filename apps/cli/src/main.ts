@@ -10,7 +10,7 @@
  */
 
 import { getOverview, getVersion } from "@reinas/core";
-import { serve } from "@reinas/server";
+import { serve } from "./server/index.ts";
 import { DEFAULT_PORT } from "@reinas/shared";
 
 const USAGE = `ReiNAS Controller ${getVersion()}

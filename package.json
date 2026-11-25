@@ -8,24 +8,28 @@
   ],
   "type": "module",
   "scripts": {
-    "dev": "bun run --filter '*' dev",
-    "dev:server": "bun run --cwd packages/server dev",
+    "dev": "turbo run dev",
+    "dev:server": "bun run --cwd apps/cli dev",
     "dev:web": "bun run --cwd apps/web dev",
-    "build": "bun run build:web && bun run compile",
+    "build": "turbo run build && bun run compile",
     "build:web": "bun run --cwd apps/web build",
-    "compile": "bun run --cwd packages/cli compile",
-    "check": "tsrs --noEmit --fast",
-    "lint": "oxlint --type-aware",
+    "compile": "TARGET=${TARGET:-bun-linux-x64} bun run scripts/build.ts",
+    "check": "oxlint --type-aware --type-check",
+    "lint": "oxlint --type-aware --type-check",
+    "lint:fix": "oxlint --type-aware --type-check --fix --fix-suggestions",
     "fmt": "oxfmt .",
     "fmt:check": "oxfmt --check .",
     "test": "bun test"
   },
   "devDependencies": {
     "@types/bun": "^1.4.5",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "elysia": "^1.4.32",
     "lefthook": "^2.2.2",
     "oxfmt": "^0.80.0",
     "oxlint": "^1.95.0",
     "tsrs": "^7.1.0-beta.tsrs5",
-    "typescript": "^5.9.0"
-  }
+    "turbo": "^2.11.13"
+  },
+  "packageManager": "bun@1.4.5"
 }

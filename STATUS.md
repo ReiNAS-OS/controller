@@ -1,40 +1,63 @@
 # 当前状态
 
-最后更新：2026-11-24
+最后更新：2026-11-25
 
 ## 做到哪了
 
-**M0 未开始。** 只有仓库骨架和文档，没有任何代码。
+**M0 骨架已跑通，M1 未开始。**
+
+已验证的能力：
+
+```
+controller --version          → 0.1.0
+controller info               → 主机名/内核/架构/内存/负载
+controller serve              → 监听 5090
+  GET /api/health             → ok
+  GET /api/system/overview    → 系统信息 JSON
+bun run build                 → turbo 编排 4 个包 + 交叉编译二进制
+单文件分发                     → 二进制拷到任意目录启动，界面和静态资源都正常
+```
+
+产物：交叉编译 `bun-linux-x64` 得到 105 MB ELF 二进制（含前端）。
+
+## 结构上的决定
+
+**CLI 是唯一入口，server 是它的模块。** 不再有独立的 server 进程。这样只有
+一个可执行文件、一个 systemd unit。
+
+**CLI 放在 `apps/cli/` 而不是 `packages/`。** 它是最终交付物，不是可复用库。
+`packages/` 只放被别处 import 的东西（`core`、`shared`）。
+
+**turbo 做编排。** 前端产物要先于二进制存在，否则编译出的二进制里没有界面。
+`turbo run build` 保证顺序。
 
 ## 下一步
 
-M0 的目标是「跑通」，具体要做：
+M1 的目标是「只读系统信息 + 桌面 shell」，具体：
 
-1. bun workspace + TypeScript 配置
-2. 服务端最小 HTTP 服务，一个健康检查端点
-3. 前端最小页面，能显示后端返回的状态
-4. `bun build --compile` 出二进制，在 Fedora 45 上验证能跑
+1. 磁盘列表（`lsblk` 解析）
+2. 存储概览（btrfs 子卷 + 使用率）
+3. 前端窗口管理器（拖拽、缩放、focus 栈）
+4. 把上面三块做成可用的 app
 
 ## 待定的事
 
-这些还没决定，动手前要定：
-
 - **特权模型**。M2 之前必须定。当前倾向：先让 `reinas` 有免密 sudo 跑通功能，
   M4 再决定要不要收敛成独立特权进程。
-- **前端窗口管理的实现**。自己写还是用 `react-rnd` 这类现成库。
-- **二进制里的 public 目录**。是嵌进二进制（真单文件），还是放在旁边
-  （改前端不用重编）。
+- **窗口管理器的实现**。自己写基于 pointer events 的，还是用 `react-rnd`。
+- **CSS 方案**。现在是手写 CSS + CSS 变量，还没定要不要上 CSS Modules 或
+  Tailwind。
 
 ## 与 os 仓库的关系
 
 `os` 那边已经为 controller 预留了位置，但**还没有把 controller 打进镜像**：
 
-- 防火墙没开 5090（`os/kiwi/config.sh` 里有注释标记）
+- 防火墙没开 5090（`os/kiwi/config.sh` 有注释标记）
 - 镜像里没有 controller 的 systemd unit
-- Cargo 里也没有相关文件
+- 镜像里没有 controller 二进制
 
-controller 打出第一个能跑的二进制后，才需要把这些接上。接的时候要改两处：
-`os/kiwi/config.sh` 的防火墙段，和 `os/kiwi/reinas.kiwi` 的 `<packages>` 段
-（用 `<file>` 把二进制和 unit 带进镜像）。
+接的时候要改两处：`os/kiwi/config.sh` 的防火墙段，和 `os/kiwi/reinas.kiwi`
+的 `<packages>` 段（用 `<file>` 把二进制和 unit 带进镜像）。
 
-参考 `os/docs/decisions-panel.md` 的 D-009。
+**但二进制还没在 Fedora 上验证过**——只在 macOS 上跑通。要在 QEMU 里测过
+才能确认 Linux 上没问题。这是接进镜像之前的门槛。

@@ -12,7 +12,7 @@ import { join } from "node:path";
 
 const root = join(import.meta.dir, "..");
 const publicDir = join(root, "public");
-const entry = join(root, "packages/cli/src/main.ts");
+const entry = join(root, "apps/cli/src/main.ts");
 const outFile = join(root, "dist/controller");
 
 // 前端产物不存在时警告但不阻断：纯 API 部署（比如只给 CLI 用）是合法场景。

@@ -29,32 +29,33 @@ export function fromError(err: unknown): ApiResponse<never> {
 }
 
 /**
- * 错误码到 HTTP 状态码的映射。
+ * 错误码到 HTTP 状态码。
  *
- * core 不知道 HTTP，所以这个映射必须留在 server 层。没列出的一律 500。
+ * 用查表而不是 switch：switch 会让复杂度随错误码数量线性增长，
+ * 一旦超过 lint 的 complexity 上限就得拆函数，反而更难读。
  */
+const STATUS_MAP: Readonly<Record<string, number>> = {
+  [ErrorCode.PRM_DENIED]: 403,
+  [ErrorCode.PRM_SUDO_REQUIRED]: 403,
+
+  [ErrorCode.STO_SUBVOLUME_NOT_FOUND]: 404,
+  [ErrorCode.USR_NOT_FOUND]: 404,
+  [ErrorCode.DIS_NOT_FOUND]: 404,
+
+  [ErrorCode.STO_SUBVOLUME_EXISTS]: 409,
+  [ErrorCode.SHR_NAME_CONFLICT]: 409,
+  [ErrorCode.USR_ALREADY_EXISTS]: 409,
+
+  [ErrorCode.CFG_INVALID]: 400,
+  [ErrorCode.CFG_MISSING]: 400,
+  [ErrorCode.SHR_CONFIG_INVALID]: 400,
+  [ErrorCode.USR_RESERVED_NAME]: 400,
+
+  [ErrorCode.DIS_SMART_UNAVAILABLE]: 501,
+  [ErrorCode.SYS_NOT_SUPPORTED]: 501,
+};
+
+/** 没列出的错误码一律 500。 */
 export function httpStatusFor(code: string): number {
-  switch (code) {
-    case ErrorCode.PRM_DENIED:
-    case ErrorCode.PRM_SUDO_REQUIRED:
-      return 403;
-    case ErrorCode.STO_SUBVOLUME_NOT_FOUND:
-    case ErrorCode.USR_NOT_FOUND:
-    case ErrorCode.DIS_NOT_FOUND:
-      return 404;
-    case ErrorCode.STO_SUBVOLUME_EXISTS:
-    case ErrorCode.SHR_NAME_CONFLICT:
-    case ErrorCode.USR_ALREADY_EXISTS:
-      return 409;
-    case ErrorCode.CFG_INVALID:
-    case ErrorCode.CFG_MISSING:
-    case ErrorCode.SHR_CONFIG_INVALID:
-    case ErrorCode.USR_RESERVED_NAME:
-      return 400;
-    case ErrorCode.DIS_SMART_UNAVAILABLE:
-    case ErrorCode.SYS_NOT_SUPPORTED:
-      return 501;
-    default:
-      return 500;
-  }
+  return STATUS_MAP[code] ?? 500;
 }

@@ -1,17 +1,66 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "import", "unicorn", "oxc"],
+  "plugins": ["typescript", "import", "unicorn", "oxc", "react", "react-perf"],
   "options": {
-    "typeAware": true
+    "typeAware": true,
+    "typeCheck": true
+  },
+  "env": {
+    "browser": true,
+    "es2024": true
   },
   "rules": {
+    "typescript/no-explicit-any": "error",
     "typescript/no-floating-promises": "error",
     "typescript/no-misused-promises": "error",
     "typescript/await-thenable": "error",
-    "no-console": "off",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/consistent-type-imports": "error",
+
+    "no-nested-ternary": "error",
+    "no-shadow": "error",
+    "no-shadow-restricted-names": "error",
     "eqeqeq": "error",
     "no-var": "error",
-    "prefer-const": "error"
+    "prefer-const": "error",
+    "no-else-return": "error",
+    "no-lonely-if": "error",
+    "curly": "error",
+    "no-implicit-coercion": "error",
+    "no-param-reassign": "error",
+    "no-return-assign": "error",
+    "no-throw-literal": "error",
+    "prefer-template": "error",
+    "sort-imports": "off",
+
+    "complexity": ["error", { "max": 10 }],
+    "max-depth": ["error", { "max": 3 }],
+    "max-lines-per-function": [
+      "error",
+      { "max": 80, "skipBlankLines": true, "skipComments": true }
+    ],
+    "max-lines": ["error", { "max": 400, "skipBlankLines": true, "skipComments": true }],
+    "max-params": ["error", { "max": 4 }],
+
+    "unicorn/filename-case": ["error", { "case": "kebabCase", "ignore": ["^vite-env\\.d\\.ts$"] }],
+
+    "react/exhaustive-deps": "error",
+    "react/jsx-key": "error",
+    "react/no-array-index-key": "error",
+    "react/jsx-no-useless-fragment": "error",
+    "react/self-closing-comp": "error",
+    "react-hooks/rules-of-hooks": "error",
+
+    "no-console": "off"
   },
+  "overrides": [
+    {
+      "files": ["**/*.config.ts", "**/scripts/**/*.ts"],
+      "rules": {
+        "no-console": "off",
+        "max-lines-per-function": "off"
+      }
+    }
+  ],
   "ignorePatterns": ["node_modules", "dist", "public", "*.md"]
 }

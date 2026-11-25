@@ -26,3 +26,4 @@ coverage/
 
 # lefthook 生成的钩子不提交（用 bunx lefthook install 装）
 .lefthook/
+.turbo

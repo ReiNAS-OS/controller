@@ -1,27 +1,41 @@
 # lefthook 配置
 # 装钩子：bunx lefthook install
 #
-# 为什么有这些：controller 是要打进 NAS 镜像的，一个类型错误或 lint 错误
-# 意味着镜像构建失败或运行时崩溃，代价是 15 分钟 + 一次完整重建。
+# 规矩：
+#   - 所有 lint 问题都是 error，没有 warn。
+#   - 发现问题就自动 fix；fix 完之后如果还有问题，才阻断提交。
+#   - 输出格式用 agent：结构化、便于人和其他 agent 读懂。
 
 pre-commit:
-  parallel: true
+  parallel: false
   commands:
     fmt:
-      # 格式化改动的文件。oxfmt 直接写回，所以失败不阻断提交。
+      # 先格式化，修改回写暂存区。oxfmt 只管格式，不会改语义。
       glob: "*.{ts,tsx,js,jsx,json}"
       run: bunx oxfmt {staged_files}
       stage_fixed: true
 
-    lint:
+    lint-fix:
+      # 再跑 lint 并全量修复。--fix 管安全的改法，--fix-suggestions 管
+      # 需要推断的改法（比如补全 hook 依赖）。
       glob: "*.{ts,tsx}"
-      run: bunx oxlint --type-aware {staged_files}
+      run: bunx oxlint --type-aware --type-check -f agent --fix --fix-suggestions {staged_files}
+      stage_fixed: true
+
+    lint-verify:
+      # 修完再验一遍。前面 fix 过不代表干净——有些问题改不了，必须人处理。
+      glob: "*.{ts,tsx}"
+      run: bunx oxlint --type-aware --type-check -f agent {staged_files}
 
 pre-push:
+  parallel: true
   commands:
-    typecheck:
-      # 全项目类型检查。tsrs 比 tsc 快 3-7 倍，放 pre-push 可以接受。
-      run: bun run check
+    check:
+      # 全项目检查。前面只查暂存文件，这里防「改了 A 但 B 被 A 影响」。
+      run: bunx oxlint --type-aware --type-check -f agent
+
+    fmt-check:
+      run: bunx oxfmt --check .
 
     test:
       run: bun test
