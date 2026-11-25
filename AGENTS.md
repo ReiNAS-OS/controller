@@ -9,9 +9,9 @@ ReiNAS 的 Web 控制器。跑在 NAS 上，提供桌面式 Web 界面和命令�
 一个单二进制程序，内含三样东西：
 
 ```
-controller            ← CLI 入口（唯一的可执行入口）
-  └─ serve 子命令     ← HTTP 服务（作为 CLI 的模块，不是独立进程）
-       └─ public/     ← 前端静态资源，编译时嵌入二进制
+reinas                 ← CLI 入口（唯一可执行文件）
+  └─ reinas serve      ← 启动 @reinas/server 提供的 HTTP 服务
+       └─ public/      ← 前端静态资源，编译时嵌入二进制
 ```
 
 **NAS 上不需要安装 node / bun / 任何 JS 运行时。** 前端产物和业务代码全部
@@ -36,26 +36,37 @@ Git hooks   lefthook
 
 ```
 apps/
-  cli/            唯一入口。内含 server 模块
-    src/main.ts     CLI 参数解析、命令分发
-    src/server/     ElysiaJS 路由、响应包装
-  web/            前端（Vite + React）
+  cli/      唯一入口。只做参数解析和命令分发，不写业务
 packages/
-  core/           业务逻辑，不依赖 HTTP。CLI 与 server 共用
-  shared/         跨边界类型、错误码、常量
-public/           前端构建产物，编译时嵌入二进制
-dist/             bun compile 输出的二进制
-scripts/build.ts  编译脚本
+  server/   ElysiaJS 路由与响应包装，提供 HTTP 服务
+  web/      前端（Vite + React）
+  core/     业务逻辑，不依赖 HTTP。CLI 与 server 共用
+  shared/   跨边界类型、错误码、常量
+public/     前端构建产物，编译时嵌入二进制
+dist/       bun compile 输出的二进制
+scripts/    编译脚本
 ```
 
-**为什么 cli 在 `apps/` 而不是 `packages/`**：它是最终交付物（一个可执行
-二进制），不是可复用库。`packages/` 里放的是被别处 import 的东西。
+**`apps/` 只有一个包**：cli。它是最终交付物（一个可执行二进制）。
+其余全是 `packages/` 里的库，被 cli 或彼此 import。
+
+**依赖方向只能是单向的**：
+
+```
+cli → server → core → shared
+  └──────────────────↗
+cli → shared
+```
+
+`core` 不知道 server 和 cli 存在。这条由 lint 和 code review 共同保证。
 
 ## 常用命令
 
 ```bash
 bun install                              # 装依赖
-bun run dev                              # 前后端同时开发
+bun run dev                              # 前后端同时热更新（推荐）
+bun run dev:server                       # 只起后端（5090，bun --watch）
+bun run dev:web                          # 只起前端（5174，Vite HMR）
 bun run build                            # 前端 → public → 编译二进制
 TARGET=bun-darwin-arm64 bun run build    # 交叉编译（默认 linux-x64）
 bun run lint                             # oxlint，type-aware + type-check
@@ -63,6 +74,25 @@ bun run lint:fix                         # 全量修复
 bun run fmt                              # oxfmt
 bun run test                             # bun test
 ```
+
+### dev 怎么工作
+
+`bun run dev` 用 turbo 并行跑两个常驻任务：
+
+```
+后端  bun --watch → 5090    改代码自动重启
+前端  Vite       → 5174     HMR，改代码不刷新页面
+
+浏览器开 http://127.0.0.1:5174
+  └─ Vite 把 /api 代理到 127.0.0.1:5090
+```
+
+**为什么前端绑 127.0.0.1**：Vite 默认只监听 `::1`（IPv6），curl 和一部分
+浏览器走 IPv4 会连不上，表现为「Vite 说 ready 但打不开」。加 `--host 127.0.0.1`
+避开。
+
+**为什么端口是 5174 不是默认 5173**：5173 常被别的项目占。`--strictPort`
+保证端口被占时直接报错，而不是静默换一个让人找半天。
 
 ## 代码规矩
 

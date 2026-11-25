@@ -24,7 +24,7 @@ async function ensureFrontend(): Promise<boolean> {
   }
 
   console.log("public/ 缺失，构建前端…");
-  const proc = Bun.spawn(["bun", "run", "--cwd", "apps/web", "build"], {
+  const proc = Bun.spawn(["bun", "run", "--cwd", "packages/web", "build"], {
     stdout: "inherit",
     stderr: "inherit",
     cwd: root,

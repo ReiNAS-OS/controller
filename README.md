@@ -8,7 +8,7 @@ ReiNAS 的 Web 控制器。跑在 NAS 上，提供桌面式 Web 界面和命令�
 
 一个单二进制程序：
 
-- **CLI**：唯一入口。`controller serve` 启动 HTTP 服务，`controller info` 查看系统
+- **CLI**：唯一入口。`reinas serve` 启动 HTTP 服务，`reinas info` 查看系统
 - **HTTP 服务**：作为 CLI 的子命令模块，浏览器打开 `https://<nas-ip>:5090`
 - **前端资源**：编译时嵌入二进制，运行时不需要外部目录
 
@@ -31,15 +31,18 @@ Git hooks   lefthook
 
 ```
 apps/
-  cli/      唯一入口，内含 server 模块
-  web/      前端
+  cli/      唯一入口（apps 下只有这一个）
 packages/
+  server/   HTTP 服务（ElysiaJS）
+  web/      前端（Vite + React）
   core/     业务逻辑，不依赖 HTTP
   shared/   跨边界类型、错误码、常量
 public/     前端构建产物，编译时嵌入二进制
 dist/       bun compile 输出
 scripts/    编译脚本
 ```
+
+依赖方向单向：`cli → server → core → shared`。
 
 ## 构建
 

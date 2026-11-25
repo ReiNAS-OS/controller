@@ -3,15 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "bin": {
-    "controller": "./src/main.ts"
+    "reinas": "./src/main.ts"
   },
   "type": "module",
   "scripts": {
-    "build": "echo \"cli: 由根 scripts/build.ts 编译\""
+    "build": "echo \"cli: 由根 scripts/build.ts 编译成二进制\"",
+    "dev": "bun --watch src/main.ts serve"
   },
   "dependencies": {
     "@reinas/core": "workspace:*",
-    "@reinas/shared": "workspace:*",
-    "elysia": "^1.4.32"
+    "@reinas/server": "workspace:*",
+    "@reinas/shared": "workspace:*"
   }
 }

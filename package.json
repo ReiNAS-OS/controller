@@ -10,9 +10,9 @@
   "scripts": {
     "dev": "turbo run dev",
     "dev:server": "bun run --cwd apps/cli dev",
-    "dev:web": "bun run --cwd apps/web dev",
+    "dev:web": "bun run --cwd packages/web dev",
     "build": "turbo run build && bun run compile",
-    "build:web": "bun run --cwd apps/web build",
+    "build:web": "bun run --cwd packages/web build",
     "compile": "TARGET=${TARGET:-bun-linux-x64} bun run scripts/build.ts",
     "check": "oxlint --type-aware --type-check",
     "lint": "oxlint --type-aware --type-check",

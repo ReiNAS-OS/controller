@@ -9,12 +9,13 @@
 已验证的能力：
 
 ```
-controller --version          → 0.1.0
-controller info               → 主机名/内核/架构/内存/负载
-controller serve              → 监听 5090
+reinas --version              → 0.1.0
+reinas info                   → 主机名/内核/架构/内存/负载
+reinas serve                  → 监听 5090
   GET /api/health             → ok
   GET /api/system/overview    → 系统信息 JSON
-bun run build                 → turbo 编排 4 个包 + 交叉编译二进制
+bun run build                 → turbo 编排 5 个包 + 交叉编译二进制
+bun run dev                   → 前后端各自热更新（5090 / 5174）
 单文件分发                     → 二进制拷到任意目录启动，界面和静态资源都正常
 ```
 
@@ -22,11 +23,11 @@ bun run build                 → turbo 编排 4 个包 + 交叉编译二进制
 
 ## 结构上的决定
 
-**CLI 是唯一入口，server 是它的模块。** 不再有独立的 server 进程。这样只有
-一个可执行文件、一个 systemd unit。
+**`apps/` 下只有 cli，其余全是 packages。** cli 是最终交付物（一个可执行
+二进制）；server / web / core / shared 都是库，被 cli 或彼此 import。
 
-**CLI 放在 `apps/cli/` 而不是 `packages/`。** 它是最终交付物，不是可复用库。
-`packages/` 只放被别处 import 的东西（`core`、`shared`）。
+**server 是独立包，不是 cli 的子模块。** `reinas serve` 只是调
+`@reinas/server` 的 `serve()`。这样 server 能单独测试、单独被别的入口调用。
 
 **turbo 做编排。** 前端产物要先于二进制存在，否则编译出的二进制里没有界面。
 `turbo run build` 保证顺序。

@@ -21,17 +21,19 @@ export interface ServeOptions {
 /**
  * 找前端产物目录。
  *
- * 两种运行形态路径不一样：
- *   源码运行     packages/server/src/ → 往上三级是仓库根的 public/
- *   bun compile  import.meta.dir 是 /$bunfs/root，嵌入的资源在它下面的 public/
+ * 三种运行形态路径不一样：
+ *   源码运行      packages/server/src/ → 往上三级是仓库根的 public/
+ *   bun compile   import.meta.dir 是 /$bunfs/root，嵌入的资源在它下面的 public/
+ *   dev 热更新     由环境变量 PUBLIC_DIR 显式指定
  *
- * 所以先试编译形态（$bunfs 下直接就是 public），再退回开发形态。
- * 都不能命中就返 null，只提供 API。
+ * 依次尝试，都不能命中就返 null，只提供 API。
  */
 function resolvePublicDir(explicit?: string): string | null {
+  const fromEnv = process.env["PUBLIC_DIR"];
   const candidates = explicit
     ? [explicit]
     : [
+        ...(fromEnv ? [fromEnv] : []),
         join(import.meta.dir, "public"), // bun compile：/$bunfs/root/public
         join(import.meta.dir, "../../../public"), // 源码运行
       ];

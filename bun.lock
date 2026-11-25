@@ -19,15 +19,35 @@
       "name": "@reinas/cli",
       "version": "0.1.0",
       "bin": {
-        "controller": "./src/main.ts",
+        "reinas": "./src/main.ts",
       },
+      "dependencies": {
+        "@reinas/core": "workspace:*",
+        "@reinas/server": "workspace:*",
+        "@reinas/shared": "workspace:*",
+      },
+    },
+    "packages/core": {
+      "name": "@reinas/core",
+      "version": "0.1.0",
+      "dependencies": {
+        "@reinas/shared": "workspace:*",
+      },
+    },
+    "packages/server": {
+      "name": "@reinas/server",
+      "version": "0.1.0",
       "dependencies": {
         "@reinas/core": "workspace:*",
         "@reinas/shared": "workspace:*",
         "elysia": "^1.4.32",
       },
     },
-    "apps/web": {
+    "packages/shared": {
+      "name": "@reinas/shared",
+      "version": "0.1.0",
+    },
+    "packages/web": {
       "name": "@reinas/web",
       "version": "0.1.0",
       "dependencies": {
@@ -41,17 +61,6 @@
         "@vitejs/plugin-react": "^5.1.0",
         "vite": "^8.3.8",
       },
-    },
-    "packages/core": {
-      "name": "@reinas/core",
-      "version": "0.1.0",
-      "dependencies": {
-        "@reinas/shared": "workspace:*",
-      },
-    },
-    "packages/shared": {
-      "name": "@reinas/shared",
-      "version": "0.1.0",
     },
   },
   "packages": {
@@ -195,9 +204,11 @@
 
     "@reinas/core": ["@reinas/core@workspace:packages/core"],
 
+    "@reinas/server": ["@reinas/server@workspace:packages/server"],
+
     "@reinas/shared": ["@reinas/shared@workspace:packages/shared"],
 
-    "@reinas/web": ["@reinas/web@workspace:apps/web"],
+    "@reinas/web": ["@reinas/web@workspace:packages/web"],
 
     "@rolldown/binding-android-arm-eabi": ["@rolldown/binding-android-arm-eabi@1.2.19", "https://mirrors.tencent.com/npm/@rolldown/binding-android-arm-eabi/-/binding-android-arm-eabi-1.2.19.tgz", { "os": "android", "cpu": "arm" }, "sha512-e+Ebe0WT+9tbXmNKPIiC8YrWAHYwug3m6i4p3rZGGulfZri1jtI4HslT+OZnFf/OIHowWF71DTlHwXBP2SiA7A=="],
 

@@ -18,7 +18,8 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "dependsOn": []
     },
     "build:web": {
       "dependsOn": ["^build"],
@@ -31,6 +32,9 @@
       "outputs": []
     },
     "@reinas/cli#build": {
+      "outputs": []
+    },
+    "@reinas/server#build": {
       "outputs": []
     }
   }
