@@ -95,6 +95,30 @@ bun run test                             # bun test
 - `react-hooks/rules-of-hooks` — hook 调用位置
 - `react/jsx-key` / `no-array-index-key`
 
+**模块边界**
+
+- `import/no-relative-parent-imports` — **禁止 `../` 跨目录 import**
+- `no-restricted-imports` — 禁止 `../*`，以及直接 import 别包的 `src/` 内部文件
+
+## Import 规则
+
+三条路，按场景选：
+
+```
+同目录文件      "./sibling.ts"
+本包内跨目录    "~/apps/cli/src/server/x.ts"   ← 用 ~ 别名，不用 ../
+跨包            "@reinas/core"                 ← 走包的公开出口
+```
+
+`~` 指向**仓库根**，在 tsconfig 的 `paths` 和 Vite 的 `resolve.alias` 里各配了
+一份，必须保持一致。bun 运行时自动读 tsconfig 的 paths，不用额外配。
+
+**为什么不许 `../`**：一旦允许，目录一挪所有相对路径全断，而编辑器不会
+提醒你。用 `~` 和包名，挪目录时只改一处配置。
+
+**为什么不许 import 别包的 `src/`**：那等于绕过包的公开 API，内部重构会
+静默破坏调用方。要暴露新东西就在那个包的 `package.json` 里加 export。
+
 ## 规矩（人写的，lint 管不到的）
 
 - **`core` 不许 import cli 或 web 的东西。** 它是共享业务层，反向依赖会让

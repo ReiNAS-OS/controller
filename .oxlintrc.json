@@ -16,7 +16,6 @@
     "typescript/await-thenable": "error",
     "typescript/no-unnecessary-type-assertion": "error",
     "typescript/consistent-type-imports": "error",
-
     "no-nested-ternary": "error",
     "no-shadow": "error",
     "no-shadow-restricted-names": "error",
@@ -32,26 +31,70 @@
     "no-throw-literal": "error",
     "prefer-template": "error",
     "sort-imports": "off",
-
-    "complexity": ["error", { "max": 10 }],
-    "max-depth": ["error", { "max": 3 }],
+    "complexity": [
+      "error",
+      {
+        "max": 10
+      }
+    ],
+    "max-depth": [
+      "error",
+      {
+        "max": 3
+      }
+    ],
     "max-lines-per-function": [
       "error",
-      { "max": 80, "skipBlankLines": true, "skipComments": true }
+      {
+        "max": 80,
+        "skipBlankLines": true,
+        "skipComments": true
+      }
     ],
-    "max-lines": ["error", { "max": 400, "skipBlankLines": true, "skipComments": true }],
-    "max-params": ["error", { "max": 4 }],
-
-    "unicorn/filename-case": ["error", { "case": "kebabCase", "ignore": ["^vite-env\\.d\\.ts$"] }],
-
+    "max-lines": [
+      "error",
+      {
+        "max": 400,
+        "skipBlankLines": true,
+        "skipComments": true
+      }
+    ],
+    "max-params": [
+      "error",
+      {
+        "max": 4
+      }
+    ],
+    "unicorn/filename-case": [
+      "error",
+      {
+        "case": "kebabCase",
+        "ignore": ["^vite-env\\.d\\.ts$"]
+      }
+    ],
     "react/exhaustive-deps": "error",
     "react/jsx-key": "error",
     "react/no-array-index-key": "error",
     "react/jsx-no-useless-fragment": "error",
     "react/self-closing-comp": "error",
     "react-hooks/rules-of-hooks": "error",
-
-    "no-console": "off"
+    "no-console": "off",
+    "import/no-relative-parent-imports": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["../*", "**/../*"],
+            "message": "跨目录不要用相对路径。项目内用 ~/，跨包用 @reinas/*。"
+          },
+          {
+            "group": ["@reinas/*/src/*"],
+            "message": "不要直接 import 别包的 src 内部文件，走包的公开出口。"
+          }
+        ]
+      }
+    ]
   },
   "overrides": [
     {

@@ -2,6 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
 
+const root = resolve(import.meta.dirname, "../..");
+
 export default defineConfig({
   plugins: [
     react({
@@ -12,6 +14,13 @@ export default defineConfig({
       },
     }),
   ],
+  resolve: {
+    // ~ 指向仓库根，与 tsconfig 的 paths 保持一致。
+    // 项目内部的跨包引用一律走 ~ 或 @reinas/*，不用 ../../ 这种相对路径。
+    alias: {
+      "~": root,
+    },
+  },
   // 产物直接落到仓库根的 public/，随二进制分发。
   build: {
     outDir: resolve(import.meta.dirname, "../../public"),

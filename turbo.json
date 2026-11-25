@@ -4,7 +4,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": []
+      "outputs": ["public/**", "dist/**"]
     },
     "check": {
       "dependsOn": ["^build"],
@@ -23,6 +23,15 @@
     "build:web": {
       "dependsOn": ["^build"],
       "outputs": ["public/**"]
+    },
+    "@reinas/shared#build": {
+      "outputs": []
+    },
+    "@reinas/core#build": {
+      "outputs": []
+    },
+    "@reinas/cli#build": {
+      "outputs": []
     }
   }
 }
