@@ -272,6 +272,19 @@ body,
 
 /* ─────────────────────────── 窗口 ─────────────────────────── */
 
+/*
+ * 活动/非活动窗口的区分方式。
+ *
+ * ⚠️ 不要用 `opacity` 做这件事。整个窗口（含 background）一起变透明时，
+ * 底下的窗口会从它身上透出来——看起来像背景被击穿，是明显的观感 bug。
+ *
+ * 改用三条只作用于「窗框」的手段，内容区始终不透明：
+ *   1. 阴影深浅：活动窗口投影更大更深，视觉上"浮"起来
+ *   2. 边框颜色：非活动窗口边框更淡，和壁纸的界限更弱
+ *   3. 标题栏文字：非活动时标题和按钮变灰，不用整体优化
+ *
+ * 这三条都不会让下面的内容透出来。
+ */
 .win {
   position: absolute;
   display: flex;
@@ -279,25 +292,33 @@ body,
   min-width: 320px;
   min-height: 200px;
   background: var(--win-bg);
-  border: 1px solid rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(0, 0, 0, 0.22);
   border-radius: 10px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
   overflow: hidden;
   color: var(--win-text);
-  /* 非活动窗口略微退后 */
-  opacity: 0.94;
   transition:
-    opacity 0.12s ease,
-    box-shadow 0.12s ease;
+    box-shadow 0.14s ease,
+    border-color 0.14s ease;
 }
 
 .win--active {
-  opacity: 1;
+  border-color: rgba(0, 0, 0, 0.34);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.58);
 }
 
 .win--max {
   border-radius: 0;
+}
+
+/* 非活动窗口的标题栏：文字和按钮变灰，一眼能看出哪个在前台。
+   只动前景色，不碰背景和整体透明度。 */
+.win:not(.win--active) .win__title {
+  color: #9aa1ad;
+}
+
+.win:not(.win--active) .win__btn {
+  opacity: 0.45;
 }
 
 /* 标题栏。Win11 是纯色白条 + 右上角三个线性按钮。 */

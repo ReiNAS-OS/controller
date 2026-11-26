@@ -155,7 +155,15 @@ export function Desktop() {
   );
 
   return (
-    <div className="desktop">
+    <div
+      className="desktop"
+      // 整个桌面禁用系统右键菜单。这是个"操作系统"界面，弹出浏览器的
+      // 「另存为 / 检查元素」会立刻破坏沉浸感。
+      //
+      // 挂在根节点上而不是 document：将来要加自己的右键菜单时，在这里
+      // 换成自定义逻辑即可，不必回头去找哪里拦过。
+      onContextMenu={(event) => event.preventDefault()}
+    >
       {/* 壁纸层。纯 CSS 渐变，不加载图片——镜像体积有限，且渐变缩放不糊。 */}
       <div className="desktop__wallpaper" aria-hidden="true" />
 

@@ -31,6 +31,54 @@ interface WindowFrameProps {
 /** 四边四角。顺序影响 DOM，不影响表现。 */
 const EDGES: ResizeEdge[] = ["n", "s", "e", "w", "ne", "nw", "se", "sw"];
 
+/** 最大化图标：一个空心方块。 */
+function MaximizeGlyph() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+      <rect
+        x="1.5"
+        y="1.5"
+        width="7"
+        height="7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.2"
+      />
+    </svg>
+  );
+}
+
+/**
+ * 还原图标：两个叠起来的方块。
+ *
+ * Win11 的画法是一个完整的框 + 一个错开的后框。用 path 画后框的
+ * 三段折线（省掉被前框挡住的那一截），比两个 rect 叠着更像系统图标。
+ */
+function RestoreGlyph() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+      {/* 后框：只画露出来的右上和右下两段 */}
+      <path
+        d="M3 3V1.5h5.5V7H7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.1"
+        strokeLinejoin="round"
+      />
+      {/* 前框 */}
+      <rect
+        x="1.5"
+        y="3"
+        width="5.5"
+        height="5.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.2"
+      />
+    </svg>
+  );
+}
+
 /**
  * 三个几何来源里挑当前生效的那个。
  *
@@ -79,7 +127,13 @@ export function WindowFrame(props: WindowFrameProps) {
       onPointerDown={onFocus}
       aria-label={window.title}
     >
-      <header className="win__bar" {...(window.maximized ? {} : drag.handlers)}>
+      <header
+        className="win__bar"
+        // 最大化时标题栏不参与拖动（几何由舞台决定），但双击还原仍然有效
+        {...(window.maximized ? {} : drag.handlers)}
+        // 双击标题栏切换最大化。系统惯例，和点右上角那个按钮等价。
+        onDoubleClick={onToggleMaximize}
+      >
         <span className="win__title">{window.title}</span>
 
         <div className="win__controls" onPointerDown={(e) => e.stopPropagation()}>
@@ -88,18 +142,14 @@ export function WindowFrame(props: WindowFrameProps) {
               <line x1="1" y1="5" x2="9" y2="5" stroke="currentColor" strokeWidth="1.2" />
             </svg>
           </button>
-          <button type="button" className="win__btn" onClick={onToggleMaximize} aria-label="最大化">
-            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-              <rect
-                x="1.5"
-                y="1.5"
-                width="7"
-                height="7"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.2"
-              />
-            </svg>
+          <button
+            type="button"
+            className="win__btn"
+            onClick={onToggleMaximize}
+            // 最大化时图标要变：两个叠起来的方块表示"还原"，单个方块表示"最大化"
+            aria-label={window.maximized ? "还原" : "最大化"}
+          >
+            {window.maximized ? <RestoreGlyph /> : <MaximizeGlyph />}
           </button>
           <button
             type="button"
