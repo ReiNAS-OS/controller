@@ -1,0 +1,113 @@
+/**
+ * 基础：变量、重置、字体。
+ *
+ * 全站生效，不涉及任何组件。改配色、改字体栈只动这里。
+ *
+ * 样式按职责分四个文件，由 main.tsx 按序 import：
+ *   base.css     变量、重置、字体（本文件）
+ *   desktop.css  桌面、Dock、窗口外壳
+ *   apps.css     应用（设置、文件管理）
+ *   screens.css  全屏状态页（启动、错误、初始化）
+ *
+ * 顺序有意义：base 的 :root 变量必须最先，组件引用才解析得到。
+ */
+
+/**
+ * 桌面与窗口样式。
+ *
+ * 整页是「一台机器」而不是「一个网页」：body 不滚动、没有页边距，壁纸
+ * 铺满视口。所有尺寸用 px 而不是 rem —— 窗口坐标是像素值，混用会让
+ * 拖动位置和样式对不上。
+ *
+ * 配色：深色底 + 冷色玻璃质感。窗口是高亮米白（Win11 的浅色窗口质感），
+ * 和深色桌面形成层次。不做暗色窗口——一个窗口系统两套主题会让第一版
+ * 复杂度翻倍，先定一套。
+ */
+
+:root {
+  --stage-bg: #0b0d12;
+  --glass: rgba(28, 32, 42, 0.72);
+  --glass-line: rgba(255, 255, 255, 0.09);
+  --text: #e8ebf2;
+  --text-dim: #8b93a5;
+  --accent: #4c8dff;
+
+  /* 窗口是浅色的，和深色桌面拉开 */
+  --win-bg: #f7f8fa;
+  --win-bar: #ffffff;
+  --win-text: #1a1d23;
+  --win-line: #e2e5ea;
+  --win-hover: rgba(0, 0, 0, 0.06);
+
+  /*
+   * 界面字体栈。三条排序原则，破坏任何一条都会出问题：
+   *
+   * 1. **西文在前，中文在后。** 中文字体包里自带的西文（字母、数字）质量
+   *    普遍很差。把中文放前面，英文和数字就会被它"抢走"。
+   *
+   * 2. **-apple-system 在最前，system-ui 不能用。** 这两个不是一个东西：
+   *    -apple-system 在 Apple 平台会展开成系统最优字体（西文 SF Pro，
+   *    中文 PingFang SC，且按字号在 Display/Text 变体间自动切换）；
+   *    system-ui 的含义是"当前系统用户语言的默认字体"，在 Windows 上它
+   *    只会给微软雅黑，不会帮你选苹方。所以用 -apple-system，
+   *    system-ui 退到最后兜底。
+   *
+   * 3. **通用族名（sans-serif）必须最后一位。** 这类关键字一旦匹配就
+   *    不再往后找——写 `monospace, "Microsoft YaHei"` 时中文会落到
+   *    SimSun，而不是雅黑。所以它只能收尾，前面不能有。
+   *
+   * 顺序：Apple → Windows → Linux → 兜底。
+   * Apple 放最前是因为它预装字体最多，放后面会被其他平台的同名/近似
+   * 字体盖掉，白白丢掉更好的字形。
+   */
+  --font-ui:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", "Source Han Sans SC",
+    "Noto Sans CJK SC", "WenQuanYi Micro Hei", system-ui, sans-serif;
+
+  /*
+   * 等宽字体。日志、路径、设备名、容量数字用它。
+   *
+   * 同样遵守"通用族名收尾"：monospace 必须最后，否则代码块里的中文
+   * 注释会落到 SimSun。
+   */
+  --font-mono:
+    ui-monospace, "SF Mono", "SFMono-Regular", "Cascadia Code", Consolas, "Roboto Mono",
+    "Ubuntu Mono", "DejaVu Sans Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    monospace;
+
+  /*
+   * 层级。唯一出处在下面这几个变量里，别在其他地方写裸数字。
+   *
+   * 顺序：壁纸 0 → 最小化条 5 → 窗口 100+ → Dock 500 → 顶栏 1000
+   *
+   * 窗口排在 Dock 之下是刻意的：Dock 是唯一入口，被窗口盖上等于应用死掉。
+   * 窗口滑到左边时从 Dock 的毛玻璃底下透出来——"不被挡"靠的是 Dock 只是
+   * 窄胶囊 + 背景半透明，不是靠压低它的层级。
+   *
+   * ⚠️ 窗口的起始值（--z-window-base）在 TS 侧也用到，见
+   * window-reducer.ts 的 Z_BASE。两处必须一致，改一个要改另一个。
+   */
+  --z-minimized: 5;
+  --z-window-base: 100;
+  --z-dock: 500;
+  --z-topbar: 1000;
+
+  color-scheme: dark;
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  /* 桌面界面字号小、密度大，圆整一点更清楚 */
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}

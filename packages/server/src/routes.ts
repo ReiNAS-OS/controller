@@ -13,7 +13,7 @@
  */
 
 import { Elysia } from "elysia";
-import { getHealth, getOverview } from "@reinas/core";
+import { getHealth, getOverview, getSetupStatus } from "@reinas/core";
 import { API_PREFIX } from "@reinas/shared";
 import { fromError, httpStatusFor, ok } from "./respond.ts";
 
@@ -22,6 +22,18 @@ export function createApiRoutes() {
     new Elysia({ prefix: API_PREFIX })
       // 健康检查。用它验证服务和前端能通，也用来探活。
       .get("/health", async () => ok(await getHealth()))
+
+      // 初始化状态。前端靠它决定进初始化页还是桌面。
+      // 返回可辨识联合 { state: "initialized" | "uninitialized" }。
+      .get("/setup/status", async ({ set }) => {
+        try {
+          return ok(await getSetupStatus());
+        } catch (err) {
+          const body = fromError(err);
+          set.status = httpStatusFor(body.ok ? "INTERNAL" : body.error.code);
+          return body;
+        }
+      })
 
       // 系统概览。只读，不需要特权。
       .get("/system/overview", async ({ set }) => {

@@ -63,6 +63,7 @@
         "@reinas/shared": "workspace:*",
         "react": "^19.3.1",
         "react-dom": "^19.3.1",
+        "ts-pattern": "^5.9.2",
       },
       "devDependencies": {
         "@reinas/server": "workspace:*",
@@ -268,6 +269,8 @@
     "tinypool": ["tinypool@2.2.0", "https://mirrors.tencent.com/npm/tinypool/-/tinypool-2.2.0.tgz", {}, "sha512-jBrmx4lYmaC9k/mgPbylxs7kBUxHtD8256up+HjLaDFfXScKJQyil+SWXSvhAtT7XHo+yTVlpB81PGmHP8oLSQ=="],
 
     "token-types": ["token-types@6.2.0", "https://mirrors.tencent.com/npm/token-types/-/token-types-6.2.0.tgz", { "dependencies": { "@borewit/text-codec": "^0.2.3", "@tokenizer/token": "^0.3.0", "ieee754": "^1.2.1" } }, "sha512-s9euYHM//T3loJtbNUYdbAzsMlvKBeRS+XCLFy+UGosMQH19Hwjap5k19i4PPAEJJBsVIpMpVTxl4fIqCuNfUg=="],
+
+    "ts-pattern": ["ts-pattern@5.9.2", "https://mirrors.tencent.com/npm/ts-pattern/-/ts-pattern-5.9.2.tgz", {}, "sha512-qAf+7M7Jjk7uebZeIo9uEzyintfuRtgHdzM9dqxRKcMi2dt76Ec+FH2wW3bnU9TuGLkZIJLoLs7cCQnU7Tu8ig=="],
 
     "tsrs": ["tsrs@7.1.0-beta.tsrs5", "https://mirrors.tencent.com/npm/tsrs/-/tsrs-7.1.0-beta.tsrs5.tgz", { "optionalDependencies": { "@tsrs/darwin-arm64": "7.1.0-beta.tsrs5", "@tsrs/darwin-x64": "7.1.0-beta.tsrs5", "@tsrs/linux-arm64-gnu": "7.1.0-beta.tsrs5", "@tsrs/linux-arm64-musl": "7.1.0-beta.tsrs5", "@tsrs/linux-x64-gnu": "7.1.0-beta.tsrs5", "@tsrs/linux-x64-musl": "7.1.0-beta.tsrs5", "@tsrs/win32-arm64": "7.1.0-beta.tsrs5", "@tsrs/win32-x64": "7.1.0-beta.tsrs5" }, "bin": { "tsrs": "./bin/tsrs", "tsrs-lint": "./bin/tsrs-lint" } }, "sha512-z+hNizBykB1mv/XxMnMYMSGuwnYEk6S708LGEEaTmdLu6eaH4NOtVemySycbEiW/SCjMeYMk+SZfVdRJwEmYXA=="],
 

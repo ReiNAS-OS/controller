@@ -1,0 +1,311 @@
+/**
+ * 全屏状态页：启动、错误、初始化。
+ *
+ * 这三个页面都在桌面之外——它们显示的时候没有 Dock、没有窗口。所以它们
+ * 用深色渐变背景（和桌面同一套），让"还没进入桌面"和"已在桌面"看起来
+ * 是同一个系统。
+ *
+ * 共用 .screen 底座，各自加 --boot / --error / --setup 修饰符。
+ */
+
+/* ─────────────────────── 全屏状态页 ─────────────────────── */
+
+/* 启动 / 错误 / 初始化页共用的底。和桌面同一套深色渐变背景，
+   让"还没进入桌面"和"已经在桌面"看起来是同一个系统。 */
+.screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text);
+  background:
+    radial-gradient(1100px 700px at 22% 18%, rgba(76, 141, 255, 0.16), transparent 62%),
+    radial-gradient(900px 700px at 80% 82%, rgba(140, 92, 255, 0.14), transparent 64%),
+    linear-gradient(160deg, #0e1220 0%, #0b0d12 48%, #0a0c11 100%);
+}
+
+/* ── 启动页 ── */
+
+.screen__mark {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* 呼吸点：用缩放做脉冲，不用旋转。旋转会让人以为在等网络。 */
+.screen__pulse {
+  width: 6px;
+  height: 6px;
+  margin: 22px 0 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+}
+
+.screen__hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* ── 错误页 ── */
+
+.screen--error {
+  padding: 0 24px;
+  text-align: center;
+}
+
+.screen__badge {
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+
+.screen__badge--error {
+  color: #ffb4b4;
+  background: rgba(224, 62, 62, 0.16);
+  border: 1px solid rgba(224, 62, 62, 0.32);
+}
+
+.screen__title {
+  margin: 16px 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.screen__body {
+  max-width: 420px;
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-dim);
+}
+
+.screen__detail {
+  max-width: 520px;
+  max-height: 120px;
+  margin: 0 0 20px;
+  padding: 10px 12px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  text-align: left;
+  color: #ffb4b4;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  white-space: pre-wrap;
+}
+
+.screen__action {
+  padding: 7px 20px;
+  font-size: 12.5px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.screen__action:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* ── 初始化页 ── */
+
+/* 不是居中的小卡片，而是铺满的布局：初始化是"整个系统还没起来"的状态，
+   不该看起来像一个浮在桌面上的弹窗。 */
+.screen--setup {
+  align-items: stretch;
+  justify-content: flex-start;
+  background: var(--stage-bg);
+}
+
+.setup__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--glass-line);
+  flex-shrink: 0;
+}
+
+.setup__mark {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.setup__stage {
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+}
+
+.setup__layout {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 左侧步骤条 */
+.setup__steps {
+  padding: 20px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-right: 1px solid var(--glass-line);
+  overflow-y: auto;
+}
+
+.setup__steps ol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.setup__step {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  border-radius: 7px;
+}
+
+.setup__step--current {
+  color: var(--text);
+  background: rgba(76, 141, 255, 0.14);
+}
+
+.setup__step--done {
+  color: var(--text);
+}
+
+.setup__step-no {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.setup__step--done .setup__step-no {
+  color: #fff;
+  background: var(--accent);
+  border-color: transparent;
+}
+
+.setup__step--current .setup__step-no {
+  border-color: var(--accent);
+}
+
+/* 右侧内容区 */
+.setup__panel {
+  display: flex;
+  flex-direction: column;
+  padding: 32px 40px;
+  overflow-y: auto;
+}
+
+.setup__title {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.setup__lead {
+  margin: 0 0 26px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-dim);
+}
+
+.setup__placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+}
+
+.setup__placeholder-title {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.setup__placeholder-note {
+  font-size: 11.5px;
+  color: rgba(139, 147, 165, 0.7);
+}
+
+.setup__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.setup__btn {
+  padding: 8px 22px;
+  font-size: 12.5px;
+  color: #fff;
+  background: var(--accent);
+  border: 1px solid transparent;
+  border-radius: 7px;
+}
+
+.setup__btn--ghost {
+  color: var(--text-dim);
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.setup__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.setup__warn {
+  margin: 22px 0 0;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: rgba(139, 147, 165, 0.8);
+}
+
+.setup__warn code {
+  padding: 1px 5px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 4px;
+}
