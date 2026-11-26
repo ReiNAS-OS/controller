@@ -3,9 +3,43 @@
 controller 的产物是 Linux 二进制，但开发机是 macOS。**本地跑通不代表 Fedora
 跑通**——最小镜像里可能没有你以为有的命令。
 
-两层验证，从快到慢。
+先把「日常开发」和「验证产物」分开，这两件事该在不同的地方做：
 
-## 第一层：容器（默认，5 秒）
+## 日常开发：前端在宿主机跑
+
+```bash
+cd controller && bun run dev      # 宿主机 5090，HMR 正常
+```
+
+**改 `.tsx` 立刻生效，不用重启。** 这是开发 UI 的主力方式。
+
+前端不依赖 Linux——浏览器拿到的就是编译后的 JS，跑在哪个 OS 上没差别。
+把前端挪进虚机只会拖慢迭代：9p 传来的文件改动不触发 Bun 的重新编译，
+每次都要手动重启 dev server（实测过）。
+
+## 后端改动的验证：进虚机
+
+只有要验证**真 Linux 的命令输出**时才需要虚机：
+
+```bash
+cd os && ./scripts/vm.sh dev      # 9p 挂载 controller 仓库，串口可写
+```
+
+典型场景：`lsblk` 的 JSON 长什么样、`btrfs subvolume list` 的输出格式、
+`/proc` 里某个字段的实际取值。
+
+⚠️ **虚机里跑 dev server 时改前端代码不会自动重载。** Bun 的 dev server
+在客户端首次请求模块时编译并缓存，它能感知宿主机通过 9p 写入的变化（日志
+里会出现 `Reloaded in 0ms`），但客户端拿到的仍是缓存产物。改完要重启：
+
+```bash
+# 虚机里
+pkill -f 'bun run dev'; cd /mnt/reinas && bun run dev
+```
+
+## 两层验证，从快到慢
+
+### 第一层：容器（默认，5 秒）
 
 ```bash
 bun run build:linux:arm64      # 或 bun run build:linux:x86_64

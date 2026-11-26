@@ -53,16 +53,3 @@ export async function run(cmd: string[], options: RunOptions = {}): Promise<RunR
     clearTimeout(timer);
   }
 }
-
-/**
- * 跑命令，非零退出就抛异常。适合「失败就是失败」的场景。
- */
-export async function runOrThrow(cmd: string[], options: RunOptions = {}): Promise<string> {
-  const { stdout, stderr, exitCode } = await run(cmd, options);
-  if (exitCode !== 0) {
-    throw new Error(
-      `${cmd.join(" ")} 失败（退出码 ${exitCode}）：${stderr.trim() || stdout.trim()}`,
-    );
-  }
-  return stdout;
-}

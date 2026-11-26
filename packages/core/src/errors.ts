@@ -20,11 +20,3 @@ export class AppError extends Error {
     }
   }
 }
-
-/** 需要特权的操作失败时用这个，前端据此提示用户。 */
-export class PermissionError extends AppError {
-  constructor(message: string, detail?: Record<string, unknown>) {
-    super("PRM_DENIED", message, detail);
-    this.name = "PermissionError";
-  }
-}

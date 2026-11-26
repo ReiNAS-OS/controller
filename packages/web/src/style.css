@@ -1,42 +1,548 @@
+/**
+ * 桌面与窗口样式。
+ *
+ * 整页是「一台机器」而不是「一个网页」：body 不滚动、没有页边距，壁纸
+ * 铺满视口。所有尺寸用 px 而不是 rem —— 窗口坐标是像素值，混用会让
+ * 拖动位置和样式对不上。
+ *
+ * 配色：深色底 + 冷色玻璃质感。窗口是高亮米白（Win11 的浅色窗口质感），
+ * 和深色桌面形成层次。不做暗色窗口——一个窗口系统两套主题会让第一版
+ * 复杂度翻倍，先定一套。
+ */
+
 :root {
-  --bg: #0b0c0e;
-  --surface: #16181c;
-  --border: #26292f;
-  --text: #e4e7ec;
-  --dim: #8b929e;
-  --accent: #56b6c2;
+  --stage-bg: #0b0d12;
+  --glass: rgba(28, 32, 42, 0.72);
+  --glass-line: rgba(255, 255, 255, 0.09);
+  --text: #e8ebf2;
+  --text-dim: #8b93a5;
+  --accent: #4c8dff;
+
+  /* 窗口是浅色的，和深色桌面拉开 */
+  --win-bg: #f7f8fa;
+  --win-bar: #ffffff;
+  --win-text: #1a1d23;
+  --win-line: #e2e5ea;
+  --win-hover: rgba(0, 0, 0, 0.06);
+
+  /*
+   * 界面字体栈。三条排序原则，破坏任何一条都会出问题：
+   *
+   * 1. **西文在前，中文在后。** 中文字体包里自带的西文（字母、数字）质量
+   *    普遍很差。把中文放前面，英文和数字就会被它"抢走"。
+   *
+   * 2. **-apple-system 在最前，system-ui 不能用。** 这两个不是一个东西：
+   *    -apple-system 在 Apple 平台会展开成系统最优字体（西文 SF Pro，
+   *    中文 PingFang SC，且按字号在 Display/Text 变体间自动切换）；
+   *    system-ui 的含义是"当前系统用户语言的默认字体"，在 Windows 上它
+   *    只会给微软雅黑，不会帮你选苹方。所以用 -apple-system，
+   *    system-ui 退到最后兜底。
+   *
+   * 3. **通用族名（sans-serif）必须最后一位。** 这类关键字一旦匹配就
+   *    不再往后找——写 `monospace, "Microsoft YaHei"` 时中文会落到
+   *    SimSun，而不是雅黑。所以它只能收尾，前面不能有。
+   *
+   * 顺序：Apple → Windows → Linux → 兜底。
+   * Apple 放最前是因为它预装字体最多，放后面会被其他平台的同名/近似
+   * 字体盖掉，白白丢掉更好的字形。
+   */
+  --font-ui:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", "Source Han Sans SC",
+    "Noto Sans CJK SC", "WenQuanYi Micro Hei", system-ui, sans-serif;
+
+  /*
+   * 等宽字体。日志、路径、设备名、容量数字用它。
+   *
+   * 同样遵守"通用族名收尾"：monospace 必须最后，否则代码块里的中文
+   * 注释会落到 SimSun。
+   */
+  --font-mono:
+    ui-monospace, "SF Mono", "SFMono-Regular", "Cascadia Code", Consolas, "Roboto Mono",
+    "Ubuntu Mono", "DejaVu Sans Mono", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    monospace;
+
+  /*
+   * 层级。唯一出处在下面这几个变量里，别在其他地方写裸数字。
+   *
+   * 顺序：壁纸 0 → 最小化条 5 → 窗口 100+ → Dock 500 → 顶栏 1000
+   *
+   * 窗口排在 Dock 之下是刻意的：Dock 是唯一入口，被窗口盖上等于应用死掉。
+   * 窗口滑到左边时从 Dock 的毛玻璃底下透出来——"不被挡"靠的是 Dock 只是
+   * 窄胶囊 + 背景半透明，不是靠压低它的层级。
+   *
+   * ⚠️ 窗口的起始值（--z-window-base）在 TS 侧也用到，见
+   * window-reducer.ts 的 Z_BASE。两处必须一致，改一个要改另一个。
+   */
+  --z-minimized: 5;
+  --z-window-base: 100;
+  --z-dock: 500;
+  --z-topbar: 1000;
 
   color-scheme: dark;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  /* 桌面界面字号小、密度大，圆整一点更清楚 */
+  text-rendering: optimizeLegibility;
 }
 
 * {
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-}
-
+html,
+body,
 #root {
-  min-height: 100vh;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
 }
 
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px;
+/* ─────────────────────────── 桌面 ─────────────────────────── */
+
+.desktop {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  color: var(--text);
+  user-select: none;
 }
 
-.dim {
-  color: var(--dim);
+/* 壁纸：多层径向渐变，模拟深空。不用图片，缩放不会糊、体积为零。 */
+.desktop__wallpaper {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(1200px 800px at 18% 12%, rgba(76, 141, 255, 0.18), transparent 60%),
+    radial-gradient(900px 700px at 82% 78%, rgba(140, 92, 255, 0.16), transparent 62%),
+    radial-gradient(700px 500px at 55% 45%, rgba(48, 209, 190, 0.08), transparent 70%),
+    linear-gradient(160deg, #0e1220 0%, #0b0d12 45%, #0a0c11 100%);
 }
 
-.mono {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+.desktop__topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  background: rgba(10, 12, 18, 0.42);
+  border-bottom: 1px solid var(--glass-line);
+  backdrop-filter: blur(18px);
+  /* 顶栏永远最上（1000）。层级顺序：壁纸 0 → 窗口 100+ → Dock 500 → 顶栏 1000。 */
+  z-index: var(--z-topbar);
+}
+
+.desktop__brand {
+  font-weight: 600;
+}
+
+.desktop__clock {
+  color: var(--text-dim);
   font-variant-numeric: tabular-nums;
+}
+
+/* 舞台：顶栏以下的整个视口。
+   宽度铺满（left: 0），窗口才能滑到 Dock 下面去 —— Dock 是透明浮层，
+   不该在左边留一条谁也进不去的死区。 */
+.desktop__stage {
+  position: absolute;
+  top: 34px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+
+.desktop__minimized {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  gap: 8px;
+  z-index: var(--z-minimized);
+}
+
+.desktop__minimized-item {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  border-radius: 8px;
+  backdrop-filter: blur(14px);
+  cursor: pointer;
+}
+
+.desktop__minimized-item:hover {
+  background: rgba(48, 54, 70, 0.85);
+}
+
+/* ─────────────────────────── Dock ─────────────────────────── */
+
+/* macOS 风格竖排 Dock：悬浮在左边缘，圆角胶囊。
+   
+   层级**高于窗口**：窗口滑到左边时从 Dock 底下透出来，但 Dock 本身永远
+   可点。Dock 是唯一入口，被窗口盖上就等于应用死了。
+   
+   "不挡窗口"靠的是两件事，不是层级：
+     1. 舞台铺满整个宽度（见 .desktop__stage 的 left:0），窗口能滑到左边
+     2. Dock 只是窄胶囊，不占整条竖带
+   
+   背景给得很透，让底下的窗口/壁纸透出来 —— 要的是"浮在上面的一层玻璃"，
+   不是一块实心色块。 */
+.dock {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 8px;
+  background: rgba(24, 28, 38, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 18px;
+  backdrop-filter: blur(20px) saturate(150%);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.36);
+  z-index: var(--z-dock);
+}
+
+.dock__item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 56px;
+  padding: 8px 0 6px;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  color: var(--text);
+  cursor: pointer;
+  /* 悬停放大是 macOS 的标志性手感 */
+  transition:
+    transform 0.16s cubic-bezier(0.2, 0.8, 0.3, 1),
+    background 0.16s ease;
+}
+
+.dock__item:hover {
+  transform: scale(1.12);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dock__item:active {
+  transform: scale(1.04);
+}
+
+.dock__icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(155deg, #5b9bff, #3d6fe0);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(61, 111, 224, 0.4);
+}
+
+.dock__label {
+  font-size: 10px;
+  color: var(--text);
+  opacity: 0.86;
+}
+
+/* 运行指示点：应用开着就有，关掉消失 */
+.dock__dot {
+  position: absolute;
+  left: -2px;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text);
+  transform: translateY(-50%);
+}
+
+/* ─────────────────────────── 窗口 ─────────────────────────── */
+
+.win {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  min-width: 320px;
+  min-height: 200px;
+  background: var(--win-bg);
+  border: 1px solid rgba(0, 0, 0, 0.28);
+  border-radius: 10px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  color: var(--win-text);
+  /* 非活动窗口略微退后 */
+  opacity: 0.94;
+  transition:
+    opacity 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.win--active {
+  opacity: 1;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.58);
+}
+
+.win--max {
+  border-radius: 0;
+}
+
+/* 标题栏。Win11 是纯色白条 + 右上角三个线性按钮。 */
+.win__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+  padding: 0 0 0 14px;
+  background: var(--win-bar);
+  border-bottom: 1px solid var(--win-line);
+  cursor: grab;
+  flex-shrink: 0;
+}
+
+.win__bar:active {
+  cursor: grabbing;
+}
+
+.win__title {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--win-text);
+  opacity: 0.82;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.win__controls {
+  display: flex;
+  height: 100%;
+}
+
+.win__btn {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 100%;
+  background: transparent;
+  border: none;
+  color: var(--win-text);
+  opacity: 0.72;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    opacity 0.12s ease;
+}
+
+.win__btn:hover {
+  background: var(--win-hover);
+  opacity: 1;
+}
+
+/* Win11 的关闭按钮悬停是红底白字 */
+.win__btn--close:hover {
+  background: #e81123;
+  color: #fff;
+  opacity: 1;
+}
+
+.win__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* ── 缩放手柄 ──
+   细条铺在边上，肉眼几乎看不见，但指针能抓住。
+   四角略大一点，方便斜向缩放。 */
+.win__grip {
+  position: absolute;
+  touch-action: none;
+}
+
+.win__grip--n,
+.win__grip--s {
+  left: 8px;
+  right: 8px;
+  height: 5px;
+  cursor: ns-resize;
+}
+
+.win__grip--n {
+  top: -2px;
+}
+
+.win__grip--s {
+  bottom: -2px;
+}
+
+.win__grip--e,
+.win__grip--w {
+  top: 8px;
+  bottom: 8px;
+  width: 5px;
+  cursor: ew-resize;
+}
+
+.win__grip--e {
+  right: -2px;
+}
+
+.win__grip--w {
+  left: -2px;
+}
+
+.win__grip--ne,
+.win__grip--nw,
+.win__grip--se,
+.win__grip--sw {
+  width: 12px;
+  height: 12px;
+}
+
+.win__grip--ne {
+  top: -2px;
+  right: -2px;
+  cursor: nesw-resize;
+}
+
+.win__grip--nw {
+  top: -2px;
+  left: -2px;
+  cursor: nwse-resize;
+}
+
+.win__grip--se {
+  bottom: -2px;
+  right: -2px;
+  cursor: nwse-resize;
+}
+
+.win__grip--sw {
+  bottom: -2px;
+  left: -2px;
+  cursor: nesw-resize;
+}
+
+/* ─────────────────────── 设置应用 ─────────────────────── */
+
+/* Win11 设置：左侧导航 + 右侧内容，整体浅色。 */
+.settings {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  height: 100%;
+}
+
+.settings__nav {
+  padding: 14px 10px;
+  background: #f0f2f5;
+  border-right: 1px solid var(--win-line);
+  overflow-y: auto;
+}
+
+.settings__user {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 8px 14px;
+}
+
+.settings__avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(150deg, #8fa4c9, #5f7398);
+}
+
+.settings__username {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.settings__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.settings__tab {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  text-align: left;
+  color: var(--win-text);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.settings__tab:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* 选中项：Win11 用左侧短竖条 + 浅底 */
+.settings__tab--on {
+  position: relative;
+  background: rgba(76, 141, 255, 0.12);
+  font-weight: 500;
+}
+
+.settings__tab--on::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--accent);
+  transform: translateY(-50%);
+}
+
+.settings__content {
+  padding: 22px 26px;
+  overflow-y: auto;
+}
+
+.settings__heading {
+  margin: 0 0 6px;
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.settings__blurb {
+  margin: 0 0 20px;
+  font-size: 12.5px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+/* 占位块：虚线框 + 居中文字，一眼看出「这里还没做」 */
+.settings__placeholder {
+  display: grid;
+  place-items: center;
+  height: 180px;
+  font-size: 12px;
+  color: #9aa1ad;
+  background: #fbfcfd;
+  border: 1px dashed #d5dae1;
+  border-radius: 8px;
 }
