@@ -138,7 +138,14 @@ export function Desktop() {
         dispatch({ type: "restore", id: existing.id });
         return;
       }
-      dispatch({ type: "open", id: `${appId}-${Date.now()}`, appId, title: app.name });
+      dispatch({
+        type: "open",
+        id: `${appId}-${Date.now()}`,
+        appId,
+        title: app.name,
+        // 尺寸由应用定义，不是窗口管理器的固定值
+        size: app.defaultSize,
+      });
     },
     [windows],
   );

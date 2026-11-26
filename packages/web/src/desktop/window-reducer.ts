@@ -11,9 +11,6 @@
 
 import type { Rect, WindowState } from "./window-types.ts";
 
-/** 新窗口的默认尺寸。比舞台小，留出拖动和缩放的余地。 */
-const DEFAULT_SIZE = { width: 720, height: 480 };
-
 /**
  * 窗口层级的起点。
  *
@@ -29,7 +26,15 @@ const Z_BASE = 100;
 const CASCADE_OFFSET = 28;
 
 export type WindowAction =
-  | { type: "open"; id: string; appId: string; title: string }
+  | {
+      type: "open";
+      id: string;
+      appId: string;
+      title: string;
+      /** 初始尺寸，由应用定义提供。传进来而不是在这里写死，
+         否则所有应用的窗口一样大，AppDefinition.defaultSize 就成了摆设。 */
+      size: { width: number; height: number };
+    }
   | { type: "close"; id: string }
   | { type: "focus"; id: string }
   | { type: "minimize"; id: string }
@@ -48,11 +53,17 @@ function nextZ(windows: WindowState[]): number {
   return windows.reduce((max, win) => Math.max(max, win.z), Z_BASE) + 1;
 }
 
-/** 新窗口的初始位置：按已开窗口数级联。 */
-function initialRect(index: number): Rect {
+/**
+ * 新窗口的初始位置：按已开窗口数级联，尺寸由应用决定。
+ *
+ * 这里不做边界夹取——初始位置固定在左上角附近，一定可见。窗口一旦被拖动
+ * 才会经过 clampToStage（见 use-window-gestures.ts）。
+ */
+function initialRect(index: number, size: { width: number; height: number }): Rect {
   const offset = (index % 6) * CASCADE_OFFSET;
   return {
-    ...DEFAULT_SIZE,
+    width: size.width,
+    height: size.height,
     x: 64 + offset,
     y: 56 + offset,
   };
@@ -72,7 +83,7 @@ function raise(windows: WindowState[], id: string): WindowState[] {
 export function windowReducer(windows: WindowState[], action: WindowAction): WindowState[] {
   switch (action.type) {
     case "open": {
-      const rect = initialRect(windows.length);
+      const rect = initialRect(windows.length, action.size);
       const created: WindowState = {
         ...rect,
         id: action.id,
@@ -120,5 +131,3 @@ export function windowReducer(windows: WindowState[], action: WindowAction): Win
       return windows;
   }
 }
-
-export { DEFAULT_SIZE };
