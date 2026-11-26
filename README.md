@@ -31,16 +31,17 @@ Git hooks   lefthook
 
 ```
 apps/
-  cli/      唯一入口（apps 下只有这一个）
+  cli/      唯一入口（apps 下只有这一个），产物在 cli/dist/reinas
 packages/
   server/   HTTP 服务（ElysiaJS）
-  web/      前端（Vite + React）
+  web/      前端（React 19 + Bun 打包器），产物在 web/dist/
   core/     业务逻辑，不依赖 HTTP
   shared/   跨边界类型、错误码、常量
-public/     前端构建产物，编译时嵌入二进制
-dist/       bun compile 输出
-scripts/    编译脚本
+scripts/    编译与验证脚本
 ```
+
+两个 `dist/` 都在包目录内。前端产物由 cli 构建时内联进二进制，NAS 上不需要
+外部目录。原因见 `docs/decisions.md` D-003。
 
 依赖方向单向：`cli → server → core → shared`。
 
@@ -48,12 +49,17 @@ scripts/    编译脚本
 
 ```bash
 bun install
-bun run dev                              # 单进程 5090，前端 HMR
-bun run build                            # 默认交叉编译 linux-x64
-TARGET=bun-darwin-arm64 bun run build    # 本机调试用
+bun run dev                  # 单进程 5090，前端 HMR
+bun run build                # 默认交叉编译 linux-x64
+bun run build:linux:arm64    # 交叉编译 linux-aarch64（给 ARM VM / ARM NAS）
+bun run build:linux:x86_64   # 显式 linux-x64
 ```
 
-产物在 `dist/controller`。
+产物在 `apps/cli/dist/reinas`。
+
+**架构必须通过 `TARGET` 指定**，它在 `turbo.json` 的 `build.env` 里声明过——
+turbo 默认 `strict` 模式会把未声明的环境变量从任务里过滤掉，漏了这行
+`TARGET=bun-linux-arm64 bun run build` 会静默产出 x64 二进制。
 
 ## 文档
 

@@ -2,7 +2,11 @@
 # 在 Fedora 容器里验证 controller 二进制。
 #
 # 这是**默认的验证方式**。几秒出结果，因为 OrbStack / Docker Desktop 在
-# Apple Silicon 上用虚拟化跑 linux/amd64，不是纯软件模拟。
+# Apple Silicon 上用虚拟化跑目标架构，不是纯软件模拟。
+#
+# 容器的平台跟着二进制架构自动选，所以 x64 和 arm64 产物都能直接测：
+#   bun run build:linux:x86_64   → x86-64 二进制
+#   bun run build:linux:arm64    → aarch64 二进制
 #
 # 对比：QEMU 跑完整镜像要 5-15 分钟（TCG），只在需要验证 systemd、SELinux、
 # 首启扩盘这些「容器测不出来」的东西时才用 scripts/vm-test.sh。
@@ -15,6 +19,7 @@
 # 环境变量：
 #   IMAGE      容器镜像，默认 fedora:45
 #   PORT       宿主机端口，默认 5090
+#   PLATFORM   强制容器平台，默认按二进制 ELF 头自动判断
 
 set -euo pipefail
 
@@ -31,9 +36,32 @@ die() { printf '\033[1;31m错误:\033[0m %s\n' "$*" >&2; exit 1; }
 [[ -f "$BINARY" ]] || die "找不到 $BINARY。先跑 bun run build。"
 command -v docker >/dev/null || die "找不到 docker"
 
+# 容器平台必须跟着二进制的真实架构走。
+#
+# 硬编码 linux/amd64 时，构建出 aarch64 二进制后在 amd64 容器里会报
+# "exec /reinas: no such file or directory" —— 看起来像二进制损坏，实际是
+# 架构不匹配。这里直接读 ELF 头判断，测 x64 和 arm64 都不用改脚本。
+detect_platform() {
+  local desc
+  desc=$(file -b "$BINARY")
+  case "$desc" in
+    *aarch64*) printf 'linux/arm64' ;;
+    *x86-64*)  printf 'linux/amd64' ;;
+    *)
+      # file 认不出来时退回宿主架构，不要瞎猜
+      case "$(uname -m)" in
+        arm64|aarch64) printf 'linux/arm64' ;;
+        *)             printf 'linux/amd64' ;;
+      esac
+      ;;
+  esac
+}
+
+readonly PLATFORM="${PLATFORM:-$(detect_platform)}"
+
 # 二进制挂进容器，只读。容器本身用 --rm，跑完即弃。
 run_in_container() {
-  docker run --rm --platform linux/amd64 \
+  docker run --rm --platform "$PLATFORM" \
     -v "$BINARY:/reinas:ro" \
     -p "$PORT:5090" \
     "$IMAGE" \

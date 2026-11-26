@@ -4,9 +4,9 @@
  *
  * 与服务端共用 core 的业务逻辑，所以 CLI 改的配置和面板看到的是同一份。
  *
- *   controller serve            启动 HTTP 服务
- *   controller info             打印系统信息
- *   controller --version        版本号
+ *   reinas serve                启动 HTTP 服务
+ *   reinas info                 打印系统信息
+ *   reinas --version            版本号
  */
 
 import { getOverview, getVersion } from "@reinas/core";
@@ -18,11 +18,11 @@ const USAGE = `ReiNAS Controller ${getVersion()}
 用法:
   reinas serve [--port <n>] [--host <addr>] [--dev]
                                                   启动 HTTP 服务
-                                                  --dev 用 Vite middleware，
+                                                  --dev 用 Bun 的全栈 dev server，
                                                   前端改动走 HMR
-  controller info                                 打印系统信息
-  controller --version                            版本号
-  controller --help                               这份帮助
+  reinas info                                     打印系统信息
+  reinas --version                                版本号
+  reinas --help                                   这份帮助
 
 端口默认 ${DEFAULT_PORT}。改了端口要同步改防火墙规则。`;
 

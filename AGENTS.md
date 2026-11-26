@@ -54,8 +54,9 @@ cli 存在。cli 额外把 web 声明成 devDependency——不是 import 它，
 ```bash
 bun install                              # 装依赖
 bun run dev                              # 单进程 5090，前端 HMR
-bun run build                            # turbo 编排全部构建
-TARGET=bun-darwin-arm64 bun run build    # 本机调试
+bun run build                            # turbo 编排全部构建（默认 linux-x64）
+bun run build:linux:x86_64               # 显式 x86-64
+bun run build:linux:arm64                # 显式 aarch64
 bun run lint / lint:fix / fmt            # 检查 / 修复 / 格式化
 bun run test:linux                       # 在 fedora:45 容器里验证（5 秒）
 ```

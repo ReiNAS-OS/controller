@@ -8,15 +8,25 @@ controller 的产物是 Linux 二进制，但开发机是 macOS。**本地跑通
 ## 第一层：容器（默认，5 秒）
 
 ```bash
-bun run build
+bun run build:linux:arm64      # 或 bun run build:linux:x86_64
 bun run test:linux
 ```
 
 会检查三件事：版本号、`reinas info` 的输出、`serve` 起来后 API 和前端是否响应。
 
-原理：把二进制只读挂进 `fedora:45` 容器，`--platform linux/amd64`。OrbStack
-和 Docker Desktop 在 Apple Silicon 上用虚拟化跑 amd64，不是软件模拟，所以几秒
-出结果。
+原理：把二进制只读挂进 `fedora:45` 容器。OrbStack 和 Docker Desktop 在
+Apple Silicon 上用虚拟化跑目标架构，不是软件模拟，所以几秒出结果。
+
+**容器的平台按二进制的 ELF 头自动选**，x64 和 arm64 产物都能直接测，不用改
+脚本：
+
+| 构建命令 | 产物 | 容器平台 |
+|---|---|---|
+| `bun run build:linux:x86_64` | `ELF x86-64` | `linux/amd64` |
+| `bun run build:linux:arm64` | `ELF aarch64` | `linux/arm64` |
+
+把 `--platform` 写死成 `linux/amd64` 时，跑 arm64 二进制会报
+`exec /reinas: no such file or directory`——看着像二进制坏了，其实是架构不匹配。
 
 **这一层应该覆盖绝大多数验证。** 改动业务逻辑、加 API、改 CLI 都在这里测。
 
