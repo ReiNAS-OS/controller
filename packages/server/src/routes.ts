@@ -47,6 +47,13 @@ export function createApiRoutes() {
       // **不写 setup.json** —— 初始化是多步流程，写完第一步就标记完成
       // 会让系统在半配置状态下进桌面。
       .post("/setup/user", async ({ body, set }) => {
+        // 已初始化就不能再走初始化流程。这个检查必须在建用户之前：
+        // 否则一台配好的机器上还能凭空造出新的 sudo 账号。
+        const blocked = await blockIfInitialized(set);
+        if (blocked) {
+          return blocked;
+        }
+
         const input = body as { username?: unknown; password?: unknown };
         if (typeof input.username !== "string" || typeof input.password !== "string") {
           set.status = 400;
@@ -73,6 +80,11 @@ export function createApiRoutes() {
 
       // 初始化最后一步：写标记文件，之后前端就能进桌面。
       .post("/setup/complete", async ({ body, set }) => {
+        const blocked = await blockIfInitialized(set);
+        if (blocked) {
+          return blocked;
+        }
+
         const input = body as { username?: unknown };
         if (typeof input.username !== "string" || input.username === "") {
           set.status = 400;
@@ -102,15 +114,30 @@ export function createApiRoutes() {
 }
 
 /**
- * 给客户端用的类型。
+ * 已初始化就拒绝。返回 null 表示可以继续。
  *
- * 前端 `import type { ApiApp } from "@reinas/server"` 之后：
+ * 这是初始化写接口的**唯一可信防线**：前端的分流只是体验层面的事，
+ * 直接 curl 打接口可以完全绕过它。所以两个写接口都必须先过这一关。
  *
- *   treaty<ApiApp>(baseUrl)
- *
- * 就得到了完整类型提示。改后端路由，前端立刻能发现不匹配——不需要代码生成，
- * 也不需要手工维护一份类型定义。
+ * 返回 409 而不是 403：请求本身合法，是当前系统状态不允许这个操作。
  */
+async function blockIfInitialized(set: {
+  status?: number | string;
+}): Promise<{ ok: false; error: { code: string; message: string } } | null> {
+  const status = await getSetupStatus();
+  if (status.state === "initialized") {
+    set.status = 409;
+    return {
+      ok: false,
+      error: {
+        code: ErrorCode.CFG_ALREADY_INITIALIZED,
+        message: "系统已完成初始化，不能再次执行初始化操作",
+      },
+    };
+  }
+  return null;
+}
+
 /**
  * core 的失败原因 → 前端能用的错误码。
  *
@@ -131,4 +158,14 @@ function setupErrorCode(reason: string): string {
   }
 }
 
+/**
+ * 给客户端用的类型。
+ *
+ * 前端 `import type { ApiApp } from "@reinas/server"` 之后：
+ *
+ *   treaty<ApiApp>(baseUrl)
+ *
+ * 就得到了完整类型提示。改后端路由，前端立刻能发现不匹配——不需要代码生成，
+ * 也不需要手工维护一份类型定义。
+ */
 export type ApiApp = ReturnType<typeof createApiRoutes>;

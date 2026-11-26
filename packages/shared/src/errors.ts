@@ -17,6 +17,8 @@ export const ErrorCode = {
   // 配置与启动
   CFG_INVALID: "CFG_INVALID",
   CFG_MISSING: "CFG_MISSING",
+  /** 系统已初始化，不能再走初始化流程 */
+  CFG_ALREADY_INITIALIZED: "CFG_ALREADY_INITIALIZED",
 
   // 系统信息
   SYS_PROBE_FAILED: "SYS_PROBE_FAILED",

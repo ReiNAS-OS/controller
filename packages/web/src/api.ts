@@ -46,7 +46,11 @@ export async function unwrap<T>(
   const { data, error } = await pending;
 
   if (error) {
-    throw new Error(errorMessage(error.value));
+    // HTTP 非 2xx 走这条。**必须带上错误码**，否则调用方没法按码分支
+    // （比如靠 CFG_ALREADY_INITIALIZED 判断初始化已完成）。格式和下面的
+    // `!data.ok` 分支保持一致：`CODE: message`。
+    const body = errorBody(error.value);
+    throw new Error(body.code ? `${body.code}: ${body.message}` : body.message);
   }
   if (data === null) {
     throw new Error("响应为空");
@@ -57,16 +61,47 @@ export async function unwrap<T>(
   return data.result;
 }
 
-/** 从错误响应里挖出可读的消息。后端统一返回 ApiResponse 的形状。 */
-function errorMessage(value: unknown): string {
-  if (typeof value !== "object" || value === null) {
-    return "请求失败";
+/**
+ * 从错误响应里挖出 code 和 message。
+ *
+ * 后端统一返回 ApiResponse 的形状，但 Eden 把它塞在 `error.value` 里。
+ * 两条错误路径（HTTP 非 2xx / HTTP 2xx 但 ok:false）都走这里，保证格式
+ * 一致——`errorCodeOf` 依赖这个一致性。
+ */
+function errorBody(value: unknown): { code: string; message: string } {
+  if (typeof value !== "object" || value === null || !("error" in value)) {
+    return { code: "", message: "请求失败" };
   }
-  if ("error" in value) {
-    const inner = (value as { error?: { message?: string } }).error;
-    if (inner?.message) {
-      return inner.message;
-    }
+  const inner = (value as { error?: { code?: string; message?: string } }).error;
+  return {
+    code: inner?.code ?? "",
+    message: inner?.message ?? "请求失败",
+  };
+}
+
+/**
+ * 从异常里取后端错误码。
+ *
+ * unwrap 抛出的消息格式是 `CODE: message`，但那只是给人看的——按字符串
+ * 匹配前缀太脆（文案改了就可能漏判）。这里单独导出，让调用方按码分支。
+ *
+ * 取不到时返回 null，调用方应当把 null 当成"未知错误"处理。
+ */
+export function errorCodeOf(err: unknown): string | null {
+  if (!(err instanceof Error)) {
+    return null;
   }
-  return "请求失败";
+  const match = /^([A-Z][A-Z0-9_]*): /.exec(err.message);
+  return match?.[1] ?? null;
+}
+
+/**
+ * 从异常里取人话消息（去掉 `CODE: ` 前缀）。
+ *
+ * 错误码是给代码分支用的，不该出现在界面上。UI 显示用这个，
+ * 判断用 errorCodeOf。
+ */
+export function errorMessageOf(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  return raw.replace(/^[A-Z][A-Z0-9_]*: /, "");
 }

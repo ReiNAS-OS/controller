@@ -13,7 +13,7 @@
  */
 
 import { useState } from "react";
-import { api, unwrap } from "~/packages/web/src/api.ts";
+import { api, errorCodeOf, errorMessageOf, unwrap } from "~/packages/web/src/api.ts";
 import { AccountForm } from "./account-form.tsx";
 
 const STEPS = [
@@ -66,7 +66,7 @@ export function SetupPage(props: SetupPageProps) {
               <p className="setup__lead">
                 系统目前只有 root 账号。创建一个日常使用的管理员账号，它会拥有 sudo 权限。
               </p>
-              <AccountForm onCreated={setUsername} />
+              <AccountForm onCreated={setUsername} onAlreadyInitialized={props.onFinished} />
               <p className="setup__warn">
                 存储和网络的配置会在后续版本接入。创建账号后点下一步即可进入桌面。
               </p>
@@ -104,7 +104,13 @@ function stepClass(index: number, accountCreated: boolean): string {
   return accountCreated ? " setup__step--current" : "";
 }
 
-/** 写 setup.json。成功后才让外层切桌面。 */
+/**
+ * 写 setup.json。成功后才让外层切桌面。
+ *
+ * 专门处理 CFG_ALREADY_INITIALIZED：说明**别处已经完成了初始化**（另一个
+ * 标签页、或者直接 curl 过），这时不该把错误甩给用户，直接进桌面才对
+ * ——因为系统确实是配好的。
+ */
 async function finishSetup(
   username: string,
   setFinish: (state: FinishState) => void,
@@ -115,9 +121,13 @@ async function finishSetup(
     await unwrap(api.api.v1.setup.complete.post({ username }));
     onFinished();
   } catch (err) {
+    if (errorCodeOf(err) === "CFG_ALREADY_INITIALIZED") {
+      onFinished();
+      return;
+    }
     setFinish({
       kind: "error",
-      message: err instanceof Error ? err.message : String(err),
+      message: errorMessageOf(err),
     });
   }
 }

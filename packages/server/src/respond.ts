@@ -48,6 +48,8 @@ const STATUS_MAP: Readonly<Record<string, number>> = {
 
   [ErrorCode.CFG_INVALID]: 400,
   [ErrorCode.CFG_MISSING]: 400,
+  // 409 而不是 400：请求本身没问题，是当前状态不允许这个操作
+  [ErrorCode.CFG_ALREADY_INITIALIZED]: 409,
   [ErrorCode.SHR_CONFIG_INVALID]: 400,
   [ErrorCode.USR_RESERVED_NAME]: 400,
 
