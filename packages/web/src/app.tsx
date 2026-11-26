@@ -75,7 +75,7 @@ export function App() {
   return match(state)
     .with({ kind: "loading" }, () => <BootScreen />)
     .with({ kind: "error" }, ({ message }) => <ErrorScreen message={message} onRetry={retry} />)
-    .with({ kind: "setup" }, () => <SetupPage />)
+    .with({ kind: "setup" }, () => <SetupPage onFinished={() => setState({ kind: "ready" })} />)
     .with({ kind: "ready" }, () => <Desktop />)
     .exhaustive();
 }

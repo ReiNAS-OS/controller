@@ -309,3 +309,68 @@
   background: rgba(255, 255, 255, 0.07);
   border-radius: 4px;
 }
+
+/* ── 初始化表单 ── */
+
+.setup__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 380px;
+}
+
+.setup__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.setup__field-label {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* 输入框在深色底上：不用纯白，用低对比的深灰 + 亮边框，
+   和整个初始化页的冷色系一致。 */
+.setup__input {
+  padding: 9px 11px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 7px;
+  outline: none;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+
+.setup__input::placeholder {
+  color: rgba(139, 147, 165, 0.65);
+}
+
+.setup__input:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--accent);
+}
+
+/* 错误提示。红色在深色底上要偏亮，纯 #f00 会显得刺眼。 */
+.setup__field-error {
+  margin: -4px 0 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: #ff9d9d;
+}
+
+/* 成功提示。绿色在深色底上同样要提亮。 */
+.setup__field-ok {
+  margin: -4px 0 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: #86e0a8;
+}
+
+.setup__field-ok strong {
+  font-weight: 600;
+}

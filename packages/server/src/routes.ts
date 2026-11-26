@@ -13,9 +13,15 @@
  */
 
 import { Elysia } from "elysia";
-import { getHealth, getOverview, getSetupStatus } from "@reinas/core";
-import { API_PREFIX } from "@reinas/shared";
-import { fromError, httpStatusFor, ok } from "./respond.ts";
+import {
+  completeSetup,
+  createAdminUser,
+  getHealth,
+  getOverview,
+  getSetupStatus,
+} from "@reinas/core";
+import { API_PREFIX, ErrorCode } from "@reinas/shared";
+import { fail, fromError, httpStatusFor, ok } from "./respond.ts";
 
 export function createApiRoutes() {
   return (
@@ -32,6 +38,53 @@ export function createApiRoutes() {
           const body = fromError(err);
           set.status = httpStatusFor(body.ok ? "INTERNAL" : body.error.code);
           return body;
+        }
+      })
+
+      // 初始化第一步：创建主用户。
+      //
+      // 系统出厂只有 root，这一步建出第一个可登录的普通用户。
+      // **不写 setup.json** —— 初始化是多步流程，写完第一步就标记完成
+      // 会让系统在半配置状态下进桌面。
+      .post("/setup/user", async ({ body, set }) => {
+        const input = body as { username?: unknown; password?: unknown };
+        if (typeof input.username !== "string" || typeof input.password !== "string") {
+          set.status = 400;
+          return fail("CFG_INVALID", "需要 username 和 password 两个字符串字段");
+        }
+
+        try {
+          const result = await createAdminUser({
+            username: input.username,
+            password: input.password,
+          });
+          if (!result.ok) {
+            // 校验类错误是 400，执行失败是 500
+            set.status = result.reason === "failed" ? 500 : 400;
+            return fail(setupErrorCode(result.reason), result.message);
+          }
+          return ok({ username: result.username });
+        } catch (err) {
+          const body2 = fromError(err);
+          set.status = httpStatusFor(body2.ok ? "INTERNAL" : body2.error.code);
+          return body2;
+        }
+      })
+
+      // 初始化最后一步：写标记文件，之后前端就能进桌面。
+      .post("/setup/complete", async ({ body, set }) => {
+        const input = body as { username?: unknown };
+        if (typeof input.username !== "string" || input.username === "") {
+          set.status = 400;
+          return fail("CFG_INVALID", "需要 username 字段");
+        }
+
+        try {
+          return ok(await completeSetup(input.username));
+        } catch (err) {
+          const body2 = fromError(err);
+          set.status = httpStatusFor(body2.ok ? "INTERNAL" : body2.error.code);
+          return body2;
         }
       })
 
@@ -58,4 +111,24 @@ export function createApiRoutes() {
  * 就得到了完整类型提示。改后端路由，前端立刻能发现不匹配——不需要代码生成，
  * 也不需要手工维护一份类型定义。
  */
+/**
+ * core 的失败原因 → 前端能用的错误码。
+ *
+ * core 层不认识 ErrorCode（那是跨边界的约定），所以在这层翻译。
+ * 前端按错误码分支处理，不按 message 匹配文字——文案会改，码不会。
+ */
+function setupErrorCode(reason: string): string {
+  switch (reason) {
+    case "reserved":
+      return ErrorCode.USR_RESERVED_NAME;
+    case "already_exists":
+      return ErrorCode.USR_ALREADY_EXISTS;
+    case "invalid_name":
+    case "weak_password":
+      return ErrorCode.CFG_INVALID;
+    default:
+      return ErrorCode.INTERNAL;
+  }
+}
+
 export type ApiApp = ReturnType<typeof createApiRoutes>;

@@ -14,9 +14,12 @@
  * 就删），所以这里不需要负责建目录。
  */
 
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 import type { SetupRecord, SetupStatus } from "@reinas/shared";
 import { VERSION } from "@reinas/shared";
+import { createUser } from "./users.ts";
+import type { CreateUserInput, CreateUserResult } from "./users.ts";
 
 /**
  * 初始化标记文件。
@@ -48,10 +51,18 @@ async function readRecord(): Promise<SetupRecord | null> {
       return null;
     }
     const record = parsed as Partial<SetupRecord>;
-    if (typeof record.completedAt !== "string" || typeof record.version !== "string") {
+    if (
+      typeof record.completedAt !== "string" ||
+      typeof record.version !== "string" ||
+      typeof record.username !== "string"
+    ) {
       return null;
     }
-    return { completedAt: record.completedAt, version: record.version };
+    return {
+      completedAt: record.completedAt,
+      version: record.version,
+      username: record.username,
+    };
   } catch {
     return null;
   }
@@ -89,4 +100,45 @@ export async function getSetupStatus(): Promise<SetupStatus> {
     completedAt: record?.completedAt ?? "",
     version: record?.version ?? VERSION,
   };
+}
+
+/**
+ * 初始化第一步：创建主用户。
+ *
+ * 系统出厂时只有 root，没有可登录的普通用户。这一步建出第一个：
+ * 有 home、bash、wheel（能 sudo）。
+ *
+ * **这一步不写 setup.json。** 初始化是多步流程，写完第一步就标记完成会
+ * 让系统在半配置状态下进桌面。标记由 completeSetup 在最后一步写。
+ *
+ * 幂等性：用户已存在时返回错误而不是静默成功——初始化只该发生一次，
+ * 静默成功会掩盖"重跑了流程"这个事实。
+ */
+export async function createAdminUser(input: CreateUserInput): Promise<CreateUserResult> {
+  return createUser(input);
+}
+
+/**
+ * 初始化最后一步：写标记文件。
+ *
+ * 用临时文件 + rename 保证原子性：直接写 setup.json 时如果进程在写到
+ * 一半被杀，会留下一个损坏的文件。而"文件存在"就是初始化完成的判据，
+ * 损坏的文件会被当成已初始化——用户进不了桌面也重不了初始化。
+ */
+export async function completeSetup(username: string): Promise<SetupRecord> {
+  const record: SetupRecord = {
+    completedAt: new Date().toISOString(),
+    version: VERSION,
+    username,
+  };
+
+  const target = setupFile();
+  const tmp = `${target}.tmp`;
+
+  // 目录可能不存在（开发机上第一次跑）
+  await mkdir(dirname(target), { recursive: true });
+  await writeFile(tmp, `${JSON.stringify(record, null, 2)}\n`, "utf8");
+  await rename(tmp, target);
+
+  return record;
 }

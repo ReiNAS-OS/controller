@@ -27,4 +27,6 @@ export interface SetupRecord {
   completedAt: string;
   /** 完成时的 controller 版本 */
   version: string;
+  /** 初始化时创建的主用户名。系统出厂只有 root，这个是第一个普通用户。 */
+  username: string;
 }
