@@ -8,6 +8,7 @@
  */
 
 import type { ReactNode } from "react";
+import { FilesApp } from "./apps/files-app.tsx";
 import { SettingsApp } from "./apps/settings-app.tsx";
 
 export interface AppDefinition {
@@ -19,6 +20,14 @@ export interface AppDefinition {
   icon: ReactNode;
   /** 默认窗口尺寸 */
   defaultSize: { width: number; height: number };
+  /**
+   * 是否单例（只能开一个窗口）。
+   *
+   * 设置这类应用是单例：重复点 Dock 只是把已有窗口提到前面，不会开第二个。
+   * 文件管理不是：用户经常要开两个窗口对比目录，所以每次都开新的，
+   * 并级联错开位置。
+   */
+  singleton: boolean;
   /** 窗口内容 */
   render: () => ReactNode;
 }
@@ -39,12 +48,38 @@ function GearIcon() {
   );
 }
 
+/** 文件夹图标。线性风格，跟齿轮一套语言。 */
+function FolderIcon() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M3 7.2c0-1 .8-1.8 1.8-1.8h3.9c.5 0 1 .2 1.3.6l1 1.1c.3.4.8.6 1.3.6h6.4c1 0 1.8.8 1.8 1.8v8.7c0 1-.8 1.8-1.8 1.8H4.8c-1 0-1.8-.8-1.8-1.8V7.2Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M3 10.4h18" stroke="currentColor" strokeWidth="1.2" opacity="0.45" />
+    </svg>
+  );
+}
+
 export const APPS: AppDefinition[] = [
+  {
+    id: "files",
+    name: "文件管理",
+    icon: <FolderIcon />,
+    defaultSize: { width: 880, height: 560 },
+    // 开多个对比目录是常见操作，不设单例
+    singleton: false,
+    render: () => <FilesApp />,
+  },
   {
     id: "settings",
     name: "设置",
     icon: <GearIcon />,
     defaultSize: { width: 760, height: 520 },
+    // 设置开一个就够了，重复点只是提到前面
+    singleton: true,
     render: () => <SettingsApp />,
   },
 ];

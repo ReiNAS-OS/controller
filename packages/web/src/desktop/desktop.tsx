@@ -132,15 +132,19 @@ export function Desktop() {
       if (!app) {
         return;
       }
-      // 已经开着就把它提到前面，不重复开窗口
-      const existing = windows.find((win) => win.appId === appId);
-      if (existing) {
-        dispatch({ type: "restore", id: existing.id });
-        return;
+      // 单例应用：已经开着就把它提到前面，不重复开窗口
+      if (app.singleton) {
+        const existing = windows.find((win) => win.appId === appId);
+        if (existing) {
+          dispatch({ type: "restore", id: existing.id });
+          return;
+        }
       }
+      // 非单例每次开新窗口。id 用时间戳 + 随机后缀，避免同一毫秒内连点
+      // 两次拿到相同 id——那样两个窗口会共享同一个 state 条目。
       dispatch({
         type: "open",
-        id: `${appId}-${Date.now()}`,
+        id: `${appId}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         appId,
         title: app.name,
         // 尺寸由应用定义，不是窗口管理器的固定值

@@ -546,3 +546,150 @@ body,
   border: 1px dashed #d5dae1;
   border-radius: 8px;
 }
+
+/* ─────────────────────── 文件管理应用 ─────────────────────── */
+
+/* 双栏：左侧位置树，右侧路径栏 + 文件列表。
+   和设置一样是浅色系，跟窗口外壳一致。 */
+.files {
+  display: grid;
+  grid-template-columns: 176px 1fr;
+  height: 100%;
+  font-size: 12.5px;
+}
+
+.files__sidebar {
+  padding: 12px 8px;
+  background: #f0f2f5;
+  border-right: 1px solid var(--win-line);
+  overflow-y: auto;
+}
+
+.files__section-title {
+  padding: 0 8px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b93a5;
+  letter-spacing: 0.04em;
+}
+
+.files__places {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.files__place {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 12.5px;
+  text-align: left;
+  color: var(--win-text);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.files__place:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.files__place-icon {
+  font-size: 9px;
+  color: #9aa1ad;
+}
+
+.files__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0;
+}
+
+/* 路径栏：面包屑。真接数据后跟着导航变。 */
+.files__pathbar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 14px;
+  font-size: 12px;
+  color: #6b7280;
+  border-bottom: 1px solid var(--win-line);
+  flex-shrink: 0;
+}
+
+.files__crumb--current {
+  color: var(--win-text);
+  font-weight: 500;
+}
+
+.files__crumb-sep {
+  color: #c3c9d2;
+}
+
+.files__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 8px;
+}
+
+/* 三列：名称 / 类型 / 大小。大小右对齐，数字才好看。 */
+.files__row {
+  display: grid;
+  grid-template-columns: 1fr 90px 88px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+}
+
+.files__row:hover {
+  background: rgba(76, 141, 255, 0.07);
+}
+
+.files__row--head {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b93a5;
+  border-bottom: 1px solid var(--win-line);
+  border-radius: 0;
+  padding-bottom: 8px;
+  margin-bottom: 2px;
+}
+
+.files__row--head:hover {
+  background: transparent;
+}
+
+.files__name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.files__kind {
+  color: #8b93a5;
+}
+
+.files__size {
+  text-align: right;
+  color: #8b93a5;
+  font-variant-numeric: tabular-nums;
+}
+
+.files__hint {
+  padding: 8px 14px 12px;
+  font-size: 11px;
+  color: #9aa1ad;
+  border-top: 1px solid var(--win-line);
+  flex-shrink: 0;
+}
