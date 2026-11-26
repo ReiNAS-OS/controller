@@ -284,12 +284,6 @@
   border-radius: 7px;
 }
 
-.setup__btn--ghost {
-  color: var(--text-dim);
-  background: transparent;
-  border-color: rgba(255, 255, 255, 0.14);
-}
-
 .setup__btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;

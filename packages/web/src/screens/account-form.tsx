@@ -19,8 +19,13 @@ type SubmitState =
   | { kind: "error"; message: string };
 
 interface AccountFormProps {
-  /** 创建成功后回调，让外层推进到下一步 */
-  onCreated: (username: string) => void;
+  /**
+   * 创建成功后回调。返回 ok:false 表示后续步骤（写标记）失败，
+   * 表单据此显示错误并把按钮恢复可用。
+   */
+  onCreated: (username: string) => Promise<{ ok: true } | { ok: false; message: string }>;
+  /** 外层正在收尾（写标记）时禁用表单，避免重复提交 */
+  disabled?: boolean;
   /**
    * 后端说"已经初始化过了"时回调。
    *
@@ -38,12 +43,12 @@ export function AccountForm(props: AccountFormProps) {
   const [submit, setSubmit] = useState<SubmitState>({ kind: "idle" });
 
   const mismatch = confirm !== "" && password !== confirm;
-  const canSubmit =
-    username !== "" &&
-    password !== "" &&
-    confirm !== "" &&
-    !mismatch &&
-    submit.kind !== "submitting";
+  const canSubmit = canSubmitForm({
+    disabled: props.disabled === true,
+    values: { username, password, confirm },
+    mismatch,
+    submitting: submit.kind === "submitting",
+  });
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -125,14 +130,19 @@ export function AccountForm(props: AccountFormProps) {
 async function createAccount(
   input: { username: string; password: string },
   setSubmit: (state: SubmitState) => void,
-  onCreated: (username: string) => void,
+  onCreated: (username: string) => Promise<{ ok: true } | { ok: false; message: string }>,
   onAlreadyInitialized: () => void,
 ): Promise<void> {
   setSubmit({ kind: "submitting" });
   try {
     await unwrap(api.api.v1.setup.user.post(input));
     setSubmit({ kind: "created", username: input.username });
-    onCreated(input.username);
+    // 账号建好了，交给外层收尾（写标记）。失败时把原因显示出来，
+    // 并把按钮恢复可用——虽然重试会撞"已存在"，但至少用户能看见状态。
+    const result = await onCreated(input.username);
+    if (!result.ok) {
+      setSubmit({ kind: "error", message: result.message });
+    }
   } catch (err) {
     if (errorCodeOf(err) === "CFG_ALREADY_INITIALIZED") {
       onAlreadyInitialized();
@@ -143,4 +153,18 @@ async function createAccount(
       message: errorMessageOf(err),
     });
   }
+}
+
+/** 表单能不能提交。抽出来降低组件本身的复杂度。 */
+function canSubmitForm(input: {
+  disabled: boolean;
+  values: { username: string; password: string; confirm: string };
+  mismatch: boolean;
+  submitting: boolean;
+}): boolean {
+  if (input.disabled || input.submitting || input.mismatch) {
+    return false;
+  }
+  const { username, password, confirm } = input.values;
+  return username !== "" && password !== "" && confirm !== "";
 }
