@@ -73,16 +73,27 @@ export async function getMemory(): Promise<MemoryInfo> {
   };
 }
 
-/** 架构。没有 /proc 接口，只能靠 uname 或 Node 的 process.arch。 */
-async function getArch(): Promise<string> {
-  const fromProcess = process.arch;
-  if (fromProcess) {
-    // bun 的 process.arch 是 "x64"/"arm64"，转成 uname 风格
-    return fromProcess === "x64" ? "x86_64" : fromProcess;
-  }
-  const out = await run(["uname", "-m"]).catch(() => null);
-  return out?.stdout.trim() ?? "unknown";
+/**
+ * 架构名。
+ *
+ * 统一用 **uname 的写法**（`aarch64` / `x86_64`），不用 Node 那套
+ * （`arm64` / `x64`）。理由：这个值会出现在 API 响应里，和 `kernel` 字段
+ * 并排显示（`7.3.4-300.fc45.aarch64`）。两套命名混在一起会自相矛盾——
+ * 之前就出现过 `arch: "arm64"` 配 `kernel: "...aarch64"` 的情况。
+ *
+ * `process.arch` 一定有值（Bun 和 Node 都保证），所以不需要跑 `uname -m`。
+ * 那张映射表只处理已知差异，遇到没列出的值原样返回。
+ */
+export async function getArch(): Promise<string> {
+  return NODE_ARCH_TO_UNAME[process.arch] ?? process.arch;
 }
+
+/** Node/Bun 的 `process.arch` → uname 的写法。只列有差异的。 */
+const NODE_ARCH_TO_UNAME: Record<string, string> = {
+  arm64: "aarch64",
+  x64: "x86_64",
+  ia32: "i686",
+};
 
 export interface LoadAverage {
   one: number;

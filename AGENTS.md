@@ -30,6 +30,7 @@ bun run build:linux:arm64      # 交叉编译（默认 linux-x64）
 bun run lint                   # 规则检查（oxlint --type-aware）
 bun run typecheck              # 类型检查（tsrs --noEmit）
 bun run check                  # 两个都跑
+bun test                       # 单元测试（bun 内置）
 bun run fmt / test:linux
 ```
 

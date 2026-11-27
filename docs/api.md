@@ -45,7 +45,7 @@ export const API_PREFIX = `/api/${API_VERSION}`;
 
 ```json
 { "ok": true, "result": {
-  "hostname": "ReiNAS", "kernel": "7.3.4-300.fc45.aarch64", "arch": "arm64",
+  "hostname": "ReiNAS", "kernel": "7.3.4-300.fc45.aarch64", "arch": "aarch64",
   "uptimeSeconds": 186, "bootTime": "...",
   "memory": { "totalBytes": 4071563264, "availableBytes": 3601653760, "usedBytes": 469909504 },
   "load": { "one": 0, "five": 0, "fifteen": 0 }

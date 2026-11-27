@@ -9,6 +9,7 @@
     "./routes": "./src/routes.ts"
   },
   "dependencies": {
+    "@elysia/static": "^1.4.12",
     "@reinas/core": "workspace:*",
     "@reinas/shared": "workspace:*",
     "elysia": "^1.4.32"

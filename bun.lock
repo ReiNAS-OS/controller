@@ -4,10 +4,6 @@
   "workspaces": {
     "": {
       "name": "reinas-controller",
-      "dependencies": {
-        "@elysia/eden": "^1.4.10",
-        "@elysia/static": "^1.4.12",
-      },
       "devDependencies": {
         "@types/bun": "^1.4.5",
         "@types/react": "^19.3.1",
@@ -46,6 +42,7 @@
       "name": "@reinas/server",
       "version": "0.1.0",
       "dependencies": {
+        "@elysia/static": "^1.4.12",
         "@reinas/core": "workspace:*",
         "@reinas/shared": "workspace:*",
         "elysia": "^1.4.32",

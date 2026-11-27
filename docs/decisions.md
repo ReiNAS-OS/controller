@@ -4,6 +4,62 @@
 
 ---
 
+## D-004：静态文件用 @elysia/static，不手写 Bun.file 路由
+
+**日期**：2026-11-27
+**状态**：已决定
+
+**背景**：生产形态要把前端产物从二进制里服务出去。一开始是手写两条路由：
+
+```ts
+.get("/", () => Bun.file(join(publicDir, "index.html")))
+.get("/*", ({ params }) => {
+  const file = Bun.file(join(publicDir, params["*"] ?? ""));
+  return file.size > 0 ? file : Bun.file(join(publicDir, "index.html"));
+})
+```
+
+**问题**：手写版只判断了 `file.size > 0`，缺三样东西——按扩展名设
+`Content-Type`（现在靠 Bun.file 猜，不可靠）、`Range` 请求支持（视频/大文件
+断点续传）、`ETag` / 304 缓存协商。这些都是静态文件服务的常规能力，重新
+实现一遍没意义。
+
+**决策**：用 `@elysia/static` 的 `staticPlugin`。
+
+```ts
+app.use(await staticPlugin({
+  assets: publicDir,
+  prefix: "/",
+  indexHTML: true,
+  alwaysStatic: true,   // ⚠️ 必须
+})).get("*", () => Bun.file(join(publicDir, "index.html")))
+```
+
+**`alwaysStatic: true` 是关键**，默认 `false` 时有两个问题：
+
+1. 插件除了注册真实文件的静态路由，还会挂一条 `/*` 动态路由兜底。那条
+   路由对不存在的路径抛 `NotFoundError`，抢在 SPA 回退之前返回 404。
+2. 那个错误在插件自己的 scope 内就被处理了，外层 `onError` / `onAfterHandle`
+   都收不到，没法拦截。
+
+`alwaysStatic: true` 只把真实存在的文件注册成路由，不挂 `/*`，后面的
+`.get("*")` 才有机会执行。产物文件数远小于默认 `staticLimit`(1024)，全量
+注册的开销可以忽略。
+
+**验证**（端口 5199 实测）：
+
+```
+/                         → 200 text/html
+/desktop/deep/route       → 200 text/html      ← SPA 回退
+/assets/index-*.js        → 200 text/javascript
+/api/v1/health            → 200 application/json
+Range: bytes=0-100        → 206                ← 手写版不支持
+```
+
+---
+
+---
+
 ## D-003：产物放在包目录内，不放仓库根
 
 **背景**：前端产物原本输出到仓库根的 `public/`，二进制到根 `dist/`。

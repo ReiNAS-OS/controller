@@ -24,6 +24,22 @@ REINAS_API_TARGET=http://127.0.0.1:5090 bun run dev  # 宿主，Vite 反代
 
 不用远端后端时直接 `bun run dev`，两个进程都在本机。
 
+## 单元测试
+
+```bash
+bun test                          # 全部
+bun test packages/core/src/users.test.ts   # 单个文件
+```
+
+用 `bun test` 而不是 vitest：它是内置的，和运行时同一个引擎，不需要额外
+依赖或配置。测试文件和被测试的代码放在同一目录，命名 `*.test.ts`。
+
+现在覆盖的是纯函数和状态判定（`validateUsername` / `validatePassword` /
+`getSetupStatus` / `getArch`）——这些错了代价高，而且不需要真 Linux 环境。
+`createUser` 那种要跑 `useradd` 的属于集成测试，还没建。
+
+`lefthook` 的 pre-push 会跑一遍，提交时挡住明显的回退。
+
 ## dev 和 build 必须同一个打包器
 
 都是 Vite，共用一份 `packages/web/vite.config.ts`。

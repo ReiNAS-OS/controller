@@ -16,6 +16,7 @@
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { staticPlugin } from "@elysia/static";
 import { Elysia } from "elysia";
 import { DEFAULT_PORT, VERSION } from "@reinas/shared";
 import { createApiRoutes } from "./routes.ts";
@@ -62,23 +63,46 @@ export function createApp() {
 }
 
 /**
- * 生产形态：Elysia 自己处理静态文件。
+ * 挂上静态文件服务。
+ *
+ * 用 `@elysia/static` 而不是手写 `Bun.file` 路由：手写版要做三件插件已经
+ * 做好的事——按扩展名设 Content-Type、处理 Range 请求、SPA 回退。之前
+ * 那版只判断了 `file.size > 0`，Range 请求和 304 缓存协商都没有。
+ *
+ * `indexHTML: true` 就是 SPA 回退：请求既不匹配路由、也不对应任何静态
+ * 文件时，返回 index.html，让前端路由接手。
  *
  * 返回类型不标注：Elysia 的链式调用每加一条路由都会改变泛型参数，
  * 写死基类反而对不上。让 TS 推断。
  */
-function withStaticFiles(app: ReturnType<typeof createApp>, publicDir: string | null) {
+async function withStaticFiles(app: ReturnType<typeof createApp>, publicDir: string | null) {
   if (!publicDir) {
     return app.get("/", () => `ReiNAS Controller ${VERSION}`);
   }
 
-  return app
-    .get("/", () => Bun.file(join(publicDir, "index.html")))
-    .get("/*", ({ params }) => {
-      const file = Bun.file(join(publicDir, params["*"] ?? ""));
-      // SPA 回退：找不到文件就返回 index.html，让前端路由处理
-      return file.size > 0 ? file : Bun.file(join(publicDir, "index.html"));
-    });
+  return (
+    app
+      .use(
+        await staticPlugin({
+          assets: publicDir,
+          prefix: "/",
+          indexHTML: true,
+          // ⚠️ 必须为 true。默认（false）时插件除了注册真实文件的静态路由，
+          // 还会挂一条 `/*` 动态路由兜底，那条路由对不存在的路径抛
+          // NotFoundError —— 结果是它抢在下面这条 SPA 回退之前返回 404，
+          // 而且它的错在插件自己的 scope 内就被处理了，外层 onError 收不到。
+          //
+          // alwaysStatic 只注册真实存在的文件，不挂 `/*`，下面的回退才有机会
+          // 执行。产物文件数远小于默认的 staticLimit(1024)，全量注册的开销
+          // 可以忽略。
+          alwaysStatic: true,
+        }),
+      )
+      // SPA 兜底：/desktop/window/3 这类前端路由在磁盘上没有对应文件，
+      // 要返回 index.html 让前端路由接管。Elysia 按注册顺序匹配，插件
+      // 注册的真实文件先命中就不会走到这里。
+      .get("*", () => Bun.file(join(publicDir, "index.html")))
+  );
 }
 
 export async function serve(options: ServeOptions = {}): Promise<void> {
@@ -92,7 +116,7 @@ export async function serve(options: ServeOptions = {}): Promise<void> {
   // 以前 dev 走 Bun 的 HTML import（Bun.serve 的 routes + development:true），
   // 那套机制依赖 inotify 事件，在跨机器/共享文件系统上完全不工作，而且
   // 和生产用的打包器不是同一个，行为会对不上。见 docs/decisions.md D-002。
-  const app = withStaticFiles(createApp(), resolvePublicDir(options.publicDir));
+  const app = await withStaticFiles(createApp(), resolvePublicDir(options.publicDir));
   app.listen({ port, hostname });
   console.log(`ReiNAS Controller ${VERSION} listening on http://${hostname}:${port}`);
 }
