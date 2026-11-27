@@ -27,7 +27,10 @@ devDependency 不是为了 import，是让 turbo 知道构建顺序。
 ```bash
 bun run dev                    # Vite 5173 + API 5090
 bun run build:linux:arm64      # 交叉编译（默认 linux-x64）
-bun run lint / fmt / test:linux
+bun run lint                   # 规则检查（oxlint --type-aware）
+bun run typecheck              # 类型检查（tsrs --noEmit）
+bun run check                  # 两个都跑
+bun run fmt / test:linux
 ```
 
 **所有根命令只调 turbo 或工具**，不直接跨包执行子模块的脚本。
@@ -58,10 +61,12 @@ REINAS_API_TARGET=http://127.0.0.1:5090 bun run dev  # 宿主，Vite 反代到�
 5. macOS 跑通不代表 Fedora 跑通 —— 用 `test:linux` 测
 6. `TARGET` 要进 `turbo.json` 的 `build.env` —— 否则静默产出错架构
 7. 共享文件系统不投递 inotify —— 前端只能跑本地盘
+8. 去掉 `--type-aware` 会让三条规则静默失效 —— 它不是类型检查开关
 
 ## 代码规矩
 
-全部由 lint 强制，完整清单见 **[docs/lint-rules.md](docs/lint-rules.md)**。最常
+**lint 管规则，tsrs 管类型**，两个独立的命令（`bun run check` 一起跑）。
+完整清单见 **[docs/lint-rules.md](docs/lint-rules.md)**。最常
 撞的：`no-explicit-any`、`no-nested-ternary`、`complexity≤10`、`max-depth≤3`、
 `max-lines-per-function≤80`、kebab-case 文件名、hook 依赖要完整、不许 `../`。
 

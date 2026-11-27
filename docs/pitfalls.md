@@ -71,12 +71,29 @@ systemd / SELinux / 首启扩盘才需要完整 QEMU（5-15 分钟）。见 `doc
 
 ---
 
-## 6. 不要安装原版 `typescript`
+## 6. 不要安装原版 `typescript`；lint 和类型检查是两个工具
 
-**原因**：类型检查走 `tsrs`（TypeScript 7 的 Rust 移植），两者诊断有细微差异，
-混用会看到不同的报错。
+**两个工具，各管一件事：**
 
-**结论**：elysia 把 typescript 声明成 optional peer，缺了不影响。
+| 命令 | 工具 | 管什么 |
+|---|---|---|
+| `bun run lint` | `oxlint --type-aware` | 代码规则（`no-floating-promises` 等） |
+| `bun run typecheck` | `tsrs --noEmit` | 类型错误（`TS2322` 等） |
+| `bun run check` | 两个都跑 | 提交/推送前的完整检查 |
+
+**为什么拆开**：`--type-check` 会让 oxlint 顺带报 TypeScript 类型错误，但那
+有两个问题——它只检查 oxlint 没忽略的文件（`ignorePatterns` 里的目录会漏），
+而且和 `tsrs` 的报错格式不一致，同一个错误在两处显示成两样。拆开之后
+`tsrs` 是类型的唯一权威。
+
+⚠️ **`--type-aware` 不能去掉**。它让规则能拿到类型信息；去掉之后
+`no-floating-promises`、`await-thenable`、`no-unnecessary-type-assertion`
+全部失效，而 `tsrs --noEmit` 补不上这些（它只管类型错误，不管未处理的
+Promise）。所以是 `--type-aware` 保留、`--type-check` 去掉。
+
+**不要装原版 `typescript`**：`tsrs` 是 TypeScript 7 的 Rust 移植，两者诊断
+有细微差异，混用会看到不同的报错。elysia 把 typescript 声明成 optional
+peer，缺了不影响。
 
 ---
 

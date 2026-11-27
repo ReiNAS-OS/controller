@@ -24,20 +24,25 @@ pre-commit:
       # 再跑 lint 并全量修复。--fix 管安全的改法，--fix-suggestions 管
       # 需要推断的改法（比如补全 hook 依赖）。
       glob: "*.{ts,tsx}"
-      run: bunx oxlint --type-aware --type-check -f agent --fix --fix-suggestions {staged_files}
+      run: bunx oxlint --type-aware -f agent --fix --fix-suggestions {staged_files}
       stage_fixed: true
 
     lint-verify:
       # 修完再验一遍。前面 fix 过不代表干净——有些问题改不了，必须人处理。
       glob: "*.{ts,tsx}"
-      run: bunx oxlint --type-aware --type-check -f agent {staged_files}
+      run: bunx oxlint --type-aware -f agent {staged_files}
 
 pre-push:
   parallel: true
   commands:
     check:
       # 全项目检查。前面只查暂存文件，这里防「改了 A 但 B 被 A 影响」。
-      run: bunx oxlint --type-aware --type-check -f agent
+      run: bunx oxlint --type-aware -f agent
+
+    typecheck:
+      # 类型检查独立于 lint：lint 只管规则，类型错误归 tsrs。
+      # 全项目跑（不传文件），因为一个文件的类型错误可能来自另一个文件的改动。
+      run: bunx tsrs --noEmit
 
     fmt-check:
       run: bunx oxfmt --check .

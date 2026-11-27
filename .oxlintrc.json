@@ -1,10 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "import", "unicorn", "oxc", "react", "react-perf"],
-  "options": {
-    "typeAware": true,
-    "typeCheck": true
-  },
   "env": {
     "browser": true,
     "es2024": true
@@ -104,5 +100,8 @@
       }
     }
   ],
-  "ignorePatterns": ["node_modules", "dist", "public", "*.md"]
+  "ignorePatterns": ["node_modules", "dist", "public", "*.md"],
+  "options": {
+    "typeAware": true
+  }
 }

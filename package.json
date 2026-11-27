@@ -12,8 +12,8 @@
     "build": "turbo run build",
     "build:linux:x86_64": "TARGET=bun-linux-x64 turbo run build",
     "build:linux:arm64": "TARGET=bun-linux-arm64 turbo run build",
-    "lint": "oxlint --type-aware --type-check",
-    "lint:fix": "oxlint --type-aware --type-check --fix --fix-suggestions",
+    "lint": "oxlint --type-aware",
+    "lint:fix": "oxlint --type-aware --fix --fix-suggestions",
     "fmt": "oxfmt .",
     "fmt:check": "oxfmt --check .",
     "test": "bun test --pass-with-no-tests",
@@ -24,7 +24,9 @@
     "test:vm-check": "bash scripts/vm-test.sh check",
     "test:vm-clean": "bash scripts/vm-test.sh clean",
     "dev:web": "bunx vite --config packages/web/vite.config.ts",
-    "dev:api": "bun --watch apps/cli/src/main.ts serve"
+    "dev:api": "bun --watch apps/cli/src/main.ts serve",
+    "typecheck": "tsrs --noEmit",
+    "check": "bun run lint && bun run typecheck"
   },
   "dependencies": {
     "@elysia/eden": "^1.4.10",
