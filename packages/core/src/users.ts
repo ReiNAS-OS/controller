@@ -9,7 +9,7 @@
  * 文件迟早漏掉其中一项。
  */
 
-import { run } from "./exec.ts";
+import { run, runShell } from "./exec.ts";
 
 /** 用户名合法：小写字母开头，之后允许小写字母、数字、连字符、下划线。 */
 const USERNAME_PATTERN = /^[a-z][a-z0-9_-]{0,31}$/;
@@ -102,47 +102,29 @@ export async function userExists(username: string): Promise<boolean> {
 /**
  * 给已存在的用户设密码。
  *
- * 密码走 stdin，不走命令行参数：`ps` 能看到别的进程的 argv，参数传密码
- * 等于广播给系统上所有用户。
+ * 密码不能出现在 argv 里（`ps` 能看到所有进程的参数），所以走环境变量交给
+ * `runShell`；也不用 Bun 的 stdin 管道，那个在 systemd 下会 EPIPE。两件事的
+ * 细节都在 `exec.ts` 的说明里。
  *
- * ⚠️ 为什么用 `bash -c 'printf ... | chpasswd'` 而不是 Bun 的 stdin 管道：
- *
- * 在 systemd 托管的环境里（stdin 是 /dev/null、stdout/stderr 是 journal
- * socket），`Bun.spawn(["chpasswd"], { stdin: "pipe" })` 再 `stdin.write()`
- * 会稳定抛 `EPIPE: broken pipe, write`——实测 3/3 复现。同样的代码在
- * 交互式 shell 里跑 20 次全成功，所以不是代码逻辑问题，是 Bun 在服务
- * 环境下建管道的方式有缺陷。
- *
- * 更糟的是它**不容易发现**：chpasswd 收到空输入时返回 0，密码不会被设置，
- * 调用方看到 ok 以为成功了。这个 bug 就是这样漏过去的——接口返回
- * `{"ok":true}` 但 `passwd -S` 显示账号仍是锁定状态。
- *
- * 让 shell 自己接管道就绕开了 Bun 的 stdin 实现。密码经 printf 传给
- * chpasswd，仍在同一台机器的进程内，不落盘。
+ * ⚠️ 这个函数返回 ok **不代表密码真的设上了**——chpasswd 收到空输入时
+ * 也返回 0。修改后请用 `passwd -S <user>` 确认是 `P` 而不是 `L`。
  */
 async function setPassword(
   username: string,
   password: string,
 ): Promise<{ ok: boolean; message: string }> {
-  // 凭据走环境变量而不是 argv 或 heredoc：环境变量只在 /proc/<pid>/environ
-  // 里可见，而那个文件只有 root 和进程属主能读；argv 则是全世界都能 ps 出来。
+  // 密码走 env 传给 shell，再由 printf 喂给 chpasswd。
   //
-  // 用 printf 而不是 echo：echo 对反斜杠的处理因 shell 而异，密码里出现
-  // \ 会被吃掉。
-  const proc = Bun.spawn(["bash", "-c", "printf '%s\\n' \"$REINAS_PW\" | chpasswd"], {
-    stdout: "pipe",
-    stderr: "pipe",
-    env: {
-      // 只传这一条，不继承父进程环境——父进程的 env 里可能有别的东西
-      PATH: "/usr/local/bin:/usr/bin:/bin",
-      REINAS_PW: `${username}:${password}`,
-    },
+  // 两个都不能省：
+  //   - 不能拼进脚本字符串：那是 bash 的 argv，ps 能看到
+  //   - 不能用 Bun 的 stdin 管道：systemd 下稳定 EPIPE（见 docs/pitfalls.md 7）
+  const result = await runShell("printf '%s\n' \"$REINAS_PW\" | chpasswd", {
+    env: { REINAS_PW: `${username}:${password}` },
+    timeoutMs: 10_000,
   });
 
-  const code = await proc.exited;
-  if (code !== 0) {
-    const stderr = await new Response(proc.stderr).text();
-    return { ok: false, message: stderr.trim() || "chpasswd 失败" };
+  if (result.exitCode !== 0) {
+    return { ok: false, message: result.stderr.trim() || "chpasswd 失败" };
   }
   return { ok: true, message: "" };
 }

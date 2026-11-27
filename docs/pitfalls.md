@@ -118,7 +118,8 @@ journal socket。在这种环境里 `Bun.spawn(["chpasswd"], { stdin: "pipe" })`
 失败可能表现成"接口返回 ok 但账号仍是锁定状态"——`passwd -S` 显示 `L`，
 `/etc/shadow` 里是 `!`。这个 bug 就是这样漏过去的。
 
-**结论**：不要用 Bun 的 stdin 管道给命令喂数据，让 shell 自己接：
+**结论**：给命令喂 stdin 一律走 `runShell`（`packages/core/src/exec.ts`），
+不要直接 `Bun.spawn` + `stdin.write`：
 
 ```ts
 // ❌ systemd 下 EPIPE
@@ -126,14 +127,14 @@ const p = Bun.spawn(["chpasswd"], { stdin: "pipe" });
 await p.stdin.write(`${user}:${pass}\n`);
 await p.stdin.end();
 
-// ✅ 凭据走 env，shell 内部接管道
-const p = Bun.spawn(["bash", "-c", 'printf \'%s\\n\' "$REINAS_PW" | chpasswd'], {
-  env: { PATH: "/usr/local/bin:/usr/bin:/bin", REINAS_PW: `${user}:${pass}` },
+// ✅ 让 shell 自己接管道，凭据走 env
+await runShell('printf \'%s\\n\' "$REINAS_PW" | chpasswd', {
+  env: { REINAS_PW: `${user}:${pass}` },
 });
 ```
 
-凭据用**环境变量**而不是 argv：`/proc/<pid>/environ` 只有 root 和属主能
-读，而 `ps` 能看到所有进程的 argv。
+凭据用**环境变量**而不是 argv：`/proc/<pid>/cmdline` 全世界可读（`ps` 就能
+看到），而 `/proc/<pid>/environ` 只有 root 和属主能读。
 
 **验证方式**：不要只看接口返回，用 `passwd -S <user>` 确认是 `P` 而不是
 `L`；更进一步是 `echo '<pass>' | su - <user> -c 'echo OK'` 真的登一次。
