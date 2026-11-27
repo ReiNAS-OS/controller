@@ -20,10 +20,14 @@ const MIN_PASSWORD_LENGTH = 8;
 /**
  * 保留用户名。
  *
- * 这些账号在系统里有特殊含义，不能作为初始化时创建的用户：
+ * 这些名字不能作为初始化时创建的用户，分两类：
+ *
  *   root     超级用户，永远存在
- *   reinas   镜像预置的应急账号（见 os 仓库 D-007），已存在且密码锁定
- *   daemon / bin / sys 等  发行版自带的系统账号
+ *   daemon / bin / sys / adm / nobody / systemd-* / polkitd / dbus / sshd
+ *            发行版自带的系统账号，占了会撞 UID 或让服务起不来
+ *   reinas   产品名。镜像里已经不再预置这个账号（os 仓库 D-007 的后续
+ *            修订），但留作保留名，避免用户取一个和面板同名的账号
+ *            造成混淆（比如 `su reinas` 到底指谁）
  */
 const RESERVED = new Set([
   "root",
