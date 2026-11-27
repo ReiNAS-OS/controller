@@ -8,6 +8,7 @@
  * 存在、密码策略都以接口返回为准。这里不做重复实现。
  */
 
+import { MIN_PASSWORD_LENGTH } from "@reinas/shared";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { api, errorCodeOf, errorMessageOf, unwrap } from "~/packages/web/src/api.ts";
@@ -86,7 +87,7 @@ export function AccountForm(props: AccountFormProps) {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="至少 8 位"
+          placeholder={`至少 ${MIN_PASSWORD_LENGTH} 位`}
           autoComplete="new-password"
           required
         />

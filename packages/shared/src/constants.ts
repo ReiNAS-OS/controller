@@ -23,3 +23,12 @@ export const API_VERSION = "v1";
 
 /** API 路由前缀。前端和后端都从这里取，避免两边写死不同路径。 */
 export const API_PREFIX = `/api/${API_VERSION}`;
+
+/**
+ * 密码最小长度。
+ *
+ * 后端用它做校验，前端用它渲染输入框提示——放这里是为了让两边只有一个
+ * 出处。前端硬编码一个「至少 8 位」的占位符、后端改了校验却没同步，用户
+ * 会看到提示说 8 位够、实际提交被拒。
+ */
+export const MIN_PASSWORD_LENGTH = 8;

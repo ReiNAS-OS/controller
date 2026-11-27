@@ -9,13 +9,11 @@
  * 文件迟早漏掉其中一项。
  */
 
+import { MIN_PASSWORD_LENGTH } from "@reinas/shared";
 import { run, runShell } from "./exec.ts";
 
 /** 用户名合法：小写字母开头，之后允许小写字母、数字、连字符、下划线。 */
 const USERNAME_PATTERN = /^[a-z][a-z0-9_-]{0,31}$/;
-
-/** 密码最短长度。不是安全的下限，只是拦住明显的手滑。 */
-const MIN_PASSWORD_LENGTH = 8;
 
 /**
  * 保留用户名。
