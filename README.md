@@ -24,7 +24,7 @@ Lint        oxlint    type-aware + type-check
 Format      oxfmt
 Git hooks   lefthook
 编排        turbo
-前端        React 19 + Bun 打包器（不用 Vite）
+前端        React 19 + Vite（dev 和 build 同一份配置）
 ```
 
 ## 目录
@@ -34,7 +34,7 @@ apps/
   cli/      唯一入口（apps 下只有这一个），产物在 cli/dist/reinas
 packages/
   server/   HTTP 服务（ElysiaJS）
-  web/      前端（React 19 + Bun 打包器），产物在 web/dist/
+  web/      前端（React 19 + Vite），产物在 web/dist/
   core/     业务逻辑，不依赖 HTTP
   shared/   跨边界类型、错误码、常量
 scripts/    编译与验证脚本
@@ -49,13 +49,25 @@ scripts/    编译与验证脚本
 
 ```bash
 bun install
-bun run dev                  # 单进程 5090，前端 HMR
+bun run dev                  # Vite 5173 + API 5090
 bun run build                # 默认交叉编译 linux-x64
 bun run build:linux:arm64    # 交叉编译 linux-aarch64（给 ARM VM / ARM NAS）
 bun run build:linux:x86_64   # 显式 linux-x64
 ```
 
 产物在 `apps/cli/dist/reinas`。
+
+**前端由 Vite 打包**（`packages/web/vite.config.ts`，dev 和 build 共用一份），
+产物落到 `packages/web/dist/`，再由 cli 构建时内联进二进制。同一个打包器保证
+"本地看到的就是部署后的样子"——两套打包器会有行为漂移。见 `docs/decisions.md`
+D-002。
+
+开发时前端跑在宿主机、后端可以跑在 Linux 虚机（面板功能要调 `lsblk` / `btrfs`
+/ `useradd`，macOS 上都没有）：
+
+```bash
+REINAS_API_TARGET=http://127.0.0.1:5090 bun run dev
+```
 
 **架构必须通过 `TARGET` 指定**，它在 `turbo.json` 的 `build.env` 里声明过——
 turbo 默认 `strict` 模式会把未声明的环境变量从任务里过滤掉，漏了这行

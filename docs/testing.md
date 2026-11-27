@@ -5,37 +5,32 @@ controller 的产物是 Linux 二进制，但开发机是 macOS。**本地跑通
 
 先把「日常开发」和「验证产物」分开，这两件事该在不同的地方做：
 
-## 日常开发：前端在宿主机跑
+## 日常开发：前端在宿主机，后端在虚机
 
 ```bash
-cd controller && bun run dev      # 宿主机 5090，HMR 正常
+cd os && ./scripts/vm.sh dev                          # 虚机，转发 5090
+REINAS_API_TARGET=http://127.0.0.1:5090 bun run dev  # 宿主，Vite 反代
 ```
 
-**改 `.tsx` 立刻生效，不用重启。** 这是开发 UI 的主力方式。
+**改 `.tsx` 立刻生效**（Vite HMR，约 1 秒）。这是开发 UI 的主力方式。
 
-前端不依赖 Linux——浏览器拿到的就是编译后的 JS，跑在哪个 OS 上没差别。
-把前端挪进虚机只会拖慢迭代：9p 传来的文件改动不触发 Bun 的重新编译，
-每次都要手动重启 dev server（实测过）。
+为什么要分开：
 
-## 后端改动的验证：进虚机
+- **后端必须在虚机**：面板功能全要调 `lsblk` / `btrfs` / `useradd` / `/proc`，
+  macOS 上这些都不存在。用假数据不行——假数据和真实输出永远有偏差。
+- **前端必须在宿主机**：共享文件系统（9p / vboxsf / NFS）不投递 inotify 事件，
+  文件监听在挂载目录上不触发。这条踩过很多次，详见
+  `../os/docs/vm-workflow.md` 的「为什么用 rsync 而不是共享文件夹」。
 
-只有要验证**真 Linux 的命令输出**时才需要虚机：
+不用远端后端时直接 `bun run dev`，两个进程都在本机。
 
-```bash
-cd os && ./scripts/vm.sh dev      # 9p 挂载 controller 仓库，串口可写
-```
+## dev 和 build 必须同一个打包器
 
-典型场景：`lsblk` 的 JSON 长什么样、`btrfs subvolume list` 的输出格式、
-`/proc` 里某个字段的实际取值。
+都是 Vite，共用一份 `packages/web/vite.config.ts`。
 
-⚠️ **虚机里跑 dev server 时改前端代码不会自动重载。** Bun 的 dev server
-在客户端首次请求模块时编译并缓存，它能感知宿主机通过 9p 写入的变化（日志
-里会出现 `Reloaded in 0ms`），但客户端拿到的仍是缓存产物。改完要重启：
-
-```bash
-# 虚机里
-pkill -f 'bun run dev'; cd /mnt/reinas && bun run dev
-```
+两套打包器（比如 dev 用 A、build 用 B）会有行为漂移——JSX 语法、CSS 处理、
+别名解析、tree-shake 结果都可能不一致，表现是「本地好好的，构建出来白屏」。
+所以 `packages/web/scripts/build.ts` 也是 `vite build`，不是 `Bun.build`。
 
 ## 两层验证，从快到慢
 

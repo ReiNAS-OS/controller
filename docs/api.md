@@ -26,6 +26,98 @@ export const API_PREFIX = `/api/${API_VERSION}`;
 加 v2 时**不要删 v1**，两个并存一段时间。用户可能写了定时脚本调 v1，突然
 404 会让他们以为 NAS 坏了。
 
+## 现有端点
+
+改接口前先看这里，确认自己改的东西有没有破坏已经约定的形状。
+
+### `GET /health`
+
+探活。不需要特权，不读磁盘。
+
+```json
+{ "ok": true, "result": { "status": "ok", "version": "0.1.0", "uptime": 120, "bootTime": "..." } }
+```
+
+### `GET /system/overview`
+
+系统概览。只读，不需要特权。数据来自 `/proc`，不是外部命令（最小镜像里
+可能没有 coreutils）。
+
+```json
+{ "ok": true, "result": {
+  "hostname": "ReiNAS", "kernel": "7.3.4-300.fc45.aarch64", "arch": "arm64",
+  "uptimeSeconds": 186, "bootTime": "...",
+  "memory": { "totalBytes": 4071563264, "availableBytes": 3601653760, "usedBytes": 469909504 },
+  "load": { "one": 0, "five": 0, "fifteen": 0 }
+} }
+```
+
+### `GET /setup/status`
+
+初始化状态。**判据是 `/etc/reinas/setup.json` 是否存在**，不是读某个字段——
+初始化一旦完成就不可回退，文件存在本身就是最终事实。前端靠它决定进初始化页
+还是桌面。
+
+返回可辨识联合，前端可以用 `ts-pattern` 穷尽匹配：
+
+```json
+{ "ok": true, "result": { "state": "uninitialized" } }
+{ "ok": true, "result": { "state": "initialized", "completedAt": "...", "version": "0.1.0" } }
+```
+
+元数据读不出来（文件损坏、权限不足）时仍报 `initialized`，用空值填
+`completedAt`。把已配好的机器判回未初始化、引导用户重来一遍，比读出脏数据
+危险得多。
+
+### `POST /setup/user`
+
+初始化第一步：创建主用户。系统出厂只有 root，这一步建出第一个可登录的普通
+账号（`useradd -m -G wheel -s /bin/bash`，拿到 sudo）。
+
+```json
+// 请求
+{ "username": "alice", "password": "至少 8 位" }
+
+// 成功
+{ "ok": true, "result": { "username": "alice" } }
+```
+
+**不写 setup.json。** 初始化是多步流程，写完第一步就标记完成会让系统在半配置
+状态下进桌面。
+
+失败时的错误码：
+
+| code | HTTP | 场景 |
+|---|---|---|
+| `CFG_INVALID` | 400 | 用户名格式不对、密码太短、缺字段 |
+| `USR_RESERVED_NAME` | 400 | 用了系统保留名（`root` / `reinas` / `daemon` 等） |
+| `USR_ALREADY_EXISTS` | 400 | 同名用户已存在 |
+| `CFG_ALREADY_INITIALIZED` | 409 | 系统已初始化，不能再建 |
+| `INTERNAL` | 500 | `useradd` / `chpasswd` 执行失败 |
+
+### `POST /setup/complete`
+
+初始化最后一步：写标记文件，之后前端就切到桌面。
+
+```json
+// 请求
+{ "username": "alice" }
+
+// 成功
+{ "ok": true, "result": { "completedAt": "...", "version": "0.1.0", "username": "alice" } }
+```
+
+用临时文件 + `rename` 原子写。直接写时进程被杀会留下损坏文件，而"文件存在"
+就是完成判据——损坏文件会被当成已初始化，用户既进不了桌面也重不了初始化。
+
+已初始化时返回 `409` + `CFG_ALREADY_INITIALIZED`。
+
+### 两个 init 写接口的共同约定
+
+**都先查 `setup/status`，已初始化就拒绝。** 这个检查必须在执行前：否则一台
+配好的机器上还能凭空造出新的 sudo 账号。前端的分流只是体验层面的事，直接
+`curl` 打接口可以完全绕过它，所以防线必须在后端。
+
 ## 响应形状
 
 所有端点统一返回：
