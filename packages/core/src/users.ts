@@ -102,26 +102,45 @@ export async function userExists(username: string): Promise<boolean> {
 /**
  * 给已存在的用户设密码。
  *
- * 密码走 stdin（chpasswd 的 "用户名:密码" 行格式），不走命令行参数：
- * `ps` 能看到别的进程的 argv，参数传密码等于广播给系统上所有用户。
+ * 密码走 stdin，不走命令行参数：`ps` 能看到别的进程的 argv，参数传密码
+ * 等于广播给系统上所有用户。
+ *
+ * ⚠️ 为什么用 `bash -c 'printf ... | chpasswd'` 而不是 Bun 的 stdin 管道：
+ *
+ * 在 systemd 托管的环境里（stdin 是 /dev/null、stdout/stderr 是 journal
+ * socket），`Bun.spawn(["chpasswd"], { stdin: "pipe" })` 再 `stdin.write()`
+ * 会稳定抛 `EPIPE: broken pipe, write`——实测 3/3 复现。同样的代码在
+ * 交互式 shell 里跑 20 次全成功，所以不是代码逻辑问题，是 Bun 在服务
+ * 环境下建管道的方式有缺陷。
+ *
+ * 更糟的是它**不容易发现**：chpasswd 收到空输入时返回 0，密码不会被设置，
+ * 调用方看到 ok 以为成功了。这个 bug 就是这样漏过去的——接口返回
+ * `{"ok":true}` 但 `passwd -S` 显示账号仍是锁定状态。
+ *
+ * 让 shell 自己接管道就绕开了 Bun 的 stdin 实现。密码经 printf 传给
+ * chpasswd，仍在同一台机器的进程内，不落盘。
  */
 async function setPassword(
   username: string,
   password: string,
 ): Promise<{ ok: boolean; message: string }> {
-  const proc = Bun.spawn(["chpasswd"], { stdin: "pipe", stdout: "pipe", stderr: "pipe" });
+  // 凭据走环境变量而不是 argv 或 heredoc：环境变量只在 /proc/<pid>/environ
+  // 里可见，而那个文件只有 root 和进程属主能读；argv 则是全世界都能 ps 出来。
+  //
+  // 用 printf 而不是 echo：echo 对反斜杠的处理因 shell 而异，密码里出现
+  // \ 会被吃掉。
+  const proc = Bun.spawn(["bash", "-c", "printf '%s\\n' \"$REINAS_PW\" | chpasswd"], {
+    stdout: "pipe",
+    stderr: "pipe",
+    env: {
+      // 只传这一条，不继承父进程环境——父进程的 env 里可能有别的东西
+      PATH: "/usr/local/bin:/usr/bin:/bin",
+      REINAS_PW: `${username}:${password}`,
+    },
+  });
 
-  try {
-    await proc.stdin.write(`${username}:${password}\n`);
-    await proc.stdin.end();
-  } catch (err) {
-    // 写入失败（管道断了）也要杀掉进程，不然会留一个挂着等输入的 chpasswd
-    proc.kill();
-    const detail = err instanceof Error ? err.message : String(err);
-    return { ok: false, message: `写入密码失败：${detail}` };
-  }
-
-  if ((await proc.exited) !== 0) {
+  const code = await proc.exited;
+  if (code !== 0) {
     const stderr = await new Response(proc.stderr).text();
     return { ok: false, message: stderr.trim() || "chpasswd 失败" };
   }

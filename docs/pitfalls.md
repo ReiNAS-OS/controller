@@ -97,7 +97,50 @@ peer，缺了不影响。
 
 ---
 
-## 7. `TARGET` 必须出现在 `turbo.json` 的 `build.env`
+## 7. systemd 下 `Bun.spawn` 的 stdin 管道会 EPIPE
+
+**现象**：初始化建用户时接口返回
+
+```
+写入密码失败：EPIPE: broken pipe, write
+（用户已创建，但密码未设置，该账号目前无法登录）
+```
+
+同样的代码在交互式 shell 里跑 20 次全成功，只有 systemd 托管的服务里会
+稳定失败（3/3 复现）。
+
+**原因**：服务由 systemd 启动时 stdin 是 `/dev/null`、stdout/stderr 是
+journal socket。在这种环境里 `Bun.spawn(["chpasswd"], { stdin: "pipe" })`
+再 `stdin.write()` 建不出可用的管道，直接 EPIPE。是 Bun 的实现问题，不是
+代码逻辑。
+
+**更隐蔽的地方**：`chpasswd` 收到空输入时**返回 0**，密码不会被设置。所以
+失败可能表现成"接口返回 ok 但账号仍是锁定状态"——`passwd -S` 显示 `L`，
+`/etc/shadow` 里是 `!`。这个 bug 就是这样漏过去的。
+
+**结论**：不要用 Bun 的 stdin 管道给命令喂数据，让 shell 自己接：
+
+```ts
+// ❌ systemd 下 EPIPE
+const p = Bun.spawn(["chpasswd"], { stdin: "pipe" });
+await p.stdin.write(`${user}:${pass}\n`);
+await p.stdin.end();
+
+// ✅ 凭据走 env，shell 内部接管道
+const p = Bun.spawn(["bash", "-c", 'printf \'%s\\n\' "$REINAS_PW" | chpasswd'], {
+  env: { PATH: "/usr/local/bin:/usr/bin:/bin", REINAS_PW: `${user}:${pass}` },
+});
+```
+
+凭据用**环境变量**而不是 argv：`/proc/<pid>/environ` 只有 root 和属主能
+读，而 `ps` 能看到所有进程的 argv。
+
+**验证方式**：不要只看接口返回，用 `passwd -S <user>` 确认是 `P` 而不是
+`L`；更进一步是 `echo '<pass>' | su - <user> -c 'echo OK'` 真的登一次。
+
+---
+
+## 8. `TARGET` 必须出现在 `turbo.json` 的 `build.env`
 
 **现象**：
 
@@ -116,13 +159,14 @@ TARGET=bun-linux-arm64 bun run build
 
 ---
 
-## 8. dev server 不监听文件系统
+## 9. 共享文件系统不投递 inotify 事件
 
-**现象**：在虚机里跑 `bun run dev`（源码通过 9p 挂载），改宿主机的 `.tsx`，
-日志出现 `Reloaded in 0ms`，但浏览器拿到的仍是旧代码。
+**现象**：前端跑在虚机里（源码通过 9p / vboxsf / NFS 挂载），改宿主机的
+`.tsx`，dev server 不重新编译，浏览器拿到的仍是旧代码。
 
-**原因**：Bun 的 dev server 在客户端首次请求模块时编译并缓存。它能感知文件变化，
-但客户端模块不会重新编译。
+**原因**：这些共享文件系统只传元数据，不投递 inotify 事件。9p 上实测
+`stat` 能看到新 mtime，但 `inotifywait` 一条事件都收不到。VirtualBox 的
+vboxsf 同理，官方 ticket #10660 标记 wontfix。
 
-**结论**：虚机里改前端要重启 dev server。更好的做法是**前端在宿主机跑**，
-虚机只用于验证后端命令输出。见 `docs/testing.md`。
+**结论**：前端跑在宿主机（本地盘），后端跑在虚机。后端只是 API，Vite 把
+`/api/*` 反代过去。见 `docs/testing.md` 和 `../os/docs/vm-workflow.md`。

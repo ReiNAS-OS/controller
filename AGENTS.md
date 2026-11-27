@@ -60,8 +60,9 @@ REINAS_API_TARGET=http://127.0.0.1:5090 bun run dev  # 宿主，Vite 反代到�
 4. 不依赖 `uname` / `hostname` —— 最小镜像没 coreutils，读 `/proc`
 5. macOS 跑通不代表 Fedora 跑通 —— 用 `test:linux` 测
 6. `TARGET` 要进 `turbo.json` 的 `build.env` —— 否则静默产出错架构
-7. 共享文件系统不投递 inotify —— 前端只能跑本地盘
-8. 去掉 `--type-aware` 会让三条规则静默失效 —— 它不是类型检查开关
+7. systemd 下 `Bun.spawn` 的 stdin 管道会 EPIPE —— 凭据走 env，让 shell 接管道
+8. 共享文件系统不投递 inotify —— 前端只能跑本地盘
+9. 去掉 `--type-aware` 会让三条规则静默失效 —— 它不是类型检查开关
 
 ## 代码规矩
 
@@ -101,6 +102,6 @@ elysia 版本一致。
 
 ## 相关文档
 
-`docs/`：`roadmap.md` 路线、`pitfalls.md` 八个坑、`testing.md` 两层验证、
+`docs/`：`roadmap.md` 路线、`pitfalls.md` 九个坑、`testing.md` 两层验证、
 `api.md` 端点清单与 Eden 硬要求、`lint-rules.md` 完整规则、`decisions.md`
 结构决策。另有 `../os/docs/decisions-panel.md`（Cockpit 移除、与镜像对接）。
