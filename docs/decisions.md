@@ -24,36 +24,79 @@ apps/cli/dist/reinas   二进制
 
 ---
 
-## D-002：前端工具链用 Bun，不用 Vite
+## D-002：前端 dev 和 build 都用 Vite
 
-**背景**：需要 dev 时前端热更新、生产时产物进二进制。
+**状态**：2026-11-27 修订。原决策是「用 Bun 自带的全栈 dev server，不用 Vite」，
+现已废弃。
 
-**试过的方案**：Vite 以 middleware mode 塞进 Elysia 的端口。dev 侧能跑通，
-但生产编译会把 vite 整条依赖图拉进来（`Could not resolve: "esbuild"`），
-静态 import 和动态 import 都拦不住。
+### 原决策为什么被推翻
 
-**决策**：用 Bun 1.3+ 自带的全栈 dev server。
-
-依据 <https://elysiajs.com/patterns/fullstack-dev-server>，机制是
-`Bun.serve` 的 `routes` 加 HTML import：
+Bun 的方案是 `Bun.serve` 的 `routes` + HTML import：
 
 ```ts
 Bun.serve({
   development: true,
-  routes: {
-    "/api/*": (req) => app.handle(req),  // Elysia
-    "/*":     index,                     // HTML import，自带 HMR
-  },
+  routes: { "/api/*": (req) => app.handle(req), "/*": index },
 })
 ```
 
-`packages/web/index.html` 的 `<script src="./src/main.tsx">` 指向**源码**，
-Bun 自己转译，不需要预先构建。
+在本机磁盘上它工作正常。但面板的大量功能要调 Linux 命令（`lsblk`、`btrfs`、
+`useradd`、`/proc`），macOS 上这些根本不存在，所以**开发必须在 Linux 虚机里**。
 
-**实测**：dev 和生产同端口同 URL；改 .tsx 后 bundle hash 变化且含新内容；
-生产二进制里搜不到 HMR 客户端痕迹（`dev.ts` 是动态 import）。
+而它依赖 inotify 事件感知文件变化，跨机器/共享文件系统上完全不工作：
 
-**省掉的依赖**：vite、@vitejs/plugin-react、babel-plugin-react-compiler。
+| 方案 | inotify |
+|---|---|
+| QEMU 9p | ❌ mtime 能传播，但事件一条都不来 |
+| VirtualBox vboxsf | ❌ 官方 ticket #10660 标记 wontfix |
+| NFS / SMB | ❌ 协议层不传 |
+
+试过 rsync 同步到虚机本地盘 + `bun --watch`，仍然失败：源文件、mtime、
+进程都确认更新了，bundle hash 也变了，但产物内容始终是旧的（编译缓存
+查不到失效条件）。这条路反复试了一小时以上，不可靠。
+
+### 现在的方案
+
+**dev 和 build 共用一份 `packages/web/vite.config.ts`。**
+
+这是这次决策的核心：不是为了用 Vite 而用 Vite，而是**必须只有一个打包器**。
+两套打包器（dev 用 A、build 用 B）会有行为漂移——JSX 语法、CSS 处理、别名
+解析、tree-shake 结果都可能不一致，表现是「本地好好的，构建出来白屏」。
+
+```
+dev    bun run dev
+         ├─ Vite dev server  5173  ← 浏览器访问这里，HMR
+         │    └─ /api/* 反代 → REINAS_API_TARGET
+         └─ 后端（可选）     5090  ← REINAS_API_TARGET 未设时本机起
+
+build  bun run build:linux:arm64
+         └─ vite build → packages/web/dist/
+              └─ 内联进 apps/cli/dist/reinas（单二进制）
+```
+
+**跨机器开发**（前端 macOS、后端 Linux 虚机）：
+
+```bash
+REINAS_API_TARGET=http://127.0.0.1:5090 bun run dev
+```
+
+这时本机不起后端，Vite 把 `/api/*` 转给虚机。HMR 在宿主机本地盘上，
+所以是正常的——这也是问题被解决的真正原因：**前端回到本地盘，后端留在
+真 Linux 上**，两边各得其所。
+
+### 原决策里「不用 Vite」的理由为什么不成立了
+
+原文说「生产编译会把 vite 整条依赖图拉进来（`Could not resolve: "esbuild"`）」。
+那是把 Vite 当 **middleware 塞进 Elysia 运行时**造成的。现在 Vite 是纯
+devDependency：`bun build --compile` 只读 `packages/web/dist/` 的产物，
+完全不知道 Vite 存在。二进制里搜不到任何 Vite 痕迹，只有打包后的
+`assets/index-*.js|css`。
+
+### 代价
+
+- 多两个 devDependency：`vite`、`@vitejs/plugin-react`
+- dev 多一个端口（5173 + 5090），但生产仍是单端口
+- `server` 包不再有 `dev.ts`，`reinas serve --dev` 标志移除
 
 ---
 

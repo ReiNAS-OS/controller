@@ -8,7 +8,7 @@
   ],
   "type": "module",
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "bun run scripts/dev.ts",
     "build": "turbo run build",
     "build:linux:x86_64": "TARGET=bun-linux-x64 turbo run build",
     "build:linux:arm64": "TARGET=bun-linux-arm64 turbo run build",
@@ -22,7 +22,9 @@
     "test:vm-run": "bash scripts/vm-test.sh run",
     "test:vm-serve": "bash scripts/vm-test.sh serve",
     "test:vm-check": "bash scripts/vm-test.sh check",
-    "test:vm-clean": "bash scripts/vm-test.sh clean"
+    "test:vm-clean": "bash scripts/vm-test.sh clean",
+    "dev:web": "bunx vite --config packages/web/vite.config.ts",
+    "dev:api": "bun --watch apps/cli/src/main.ts serve"
   },
   "dependencies": {
     "@elysia/eden": "^1.4.10",

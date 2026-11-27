@@ -1,18 +1,17 @@
 /**
  * HTTP 服务入口。
  *
- * 两种运行形态共用同一套路由定义：
+ * 只有一种运行形态：Elysia listen，自己服务静态文件。
  *
- *   生产  Elysia 直接 listen，静态文件从嵌入的 dist/ 读
- *   dev   Bun.serve 的 routes 分发：/api/* 交给 Elysia，其余交给 Bun 的
- *         HTML 入口（自带 HMR）
+ *   dev    前端由 Vite dev server 提供（另起一个端口），/api 反代到这里；
+ *          这里只管 API，publicDir 通常找不到也就不服务静态文件
+ *   生产   前端产物内联在二进制里，这里用 Elysia 静态服务
  *
- * 为什么 dev 不用 Elysia 的 listen：Bun 的全栈 dev server 是 `Bun.serve`
- * 的 `routes` + HTML import 特性，HMR 客户端由 Bun 注入。Elysia 的 listen
- * 走的是自己的路径，不触发那套机制，页面能打开但不会热更新。
- *
- * 为什么生产不用 Bun.serve routes：routes 是 dev 期特性，生产要的是把
- * public/ 打进二进制。用 Elysia 的静态文件处理更直接。
+ * **为什么 dev 不再用 Bun 的 HTML import**：那套机制（Bun.serve 的 routes
+ * + `development: true`）依赖 inotify 事件感知文件变化，在跨机器和共享
+ * 文件系统上完全不工作（9p / vboxsf / NFS 都不投递事件，实测过），而且
+ * 它用的打包器和生产不是同一个，行为会漂移。现在 dev 和 build 共用一份
+ * vite.config.ts，看到的就是部署后的样子。见 docs/decisions.md D-002。
  */
 
 import { existsSync } from "node:fs";
@@ -26,10 +25,6 @@ export interface ServeOptions {
   hostname?: string;
   /** 前端产物目录。不存在时只提供 API，不报错。 */
   publicDir?: string;
-  /** dev 模式：用 Bun 的 HTML 入口，带 HMR。 */
-  dev?: boolean;
-  /** dev 模式下前端 public 目录（含 index.html）。 */
-  webRoot?: string;
 }
 
 /**
@@ -66,11 +61,6 @@ export function createApp() {
   return new Elysia().use(createApiRoutes());
 }
 
-/** Elysia 的 handle 签名。dev 分支转发请求时用它，避免依赖具体泛型。 */
-export interface AppHandle {
-  handle: (request: Request) => Promise<Response>;
-}
-
 /**
  * 生产形态：Elysia 自己处理静态文件。
  *
@@ -95,14 +85,13 @@ export async function serve(options: ServeOptions = {}): Promise<void> {
   const port = options.port ?? DEFAULT_PORT;
   const hostname = options.hostname ?? "0.0.0.0";
 
-  if (options.dev) {
-    // 动态 import：dev 分支依赖 HTML import（Bun 的打包器特性），
-    // 静态引入会让生产编译也去解析它。
-    const { serveDev } = await import("./dev.ts");
-    await serveDev({ port, hostname, ...(options.webRoot ? { webRoot: options.webRoot } : {}) });
-    return;
-  }
-
+  // dev 和生产的差别只剩「前端产物从哪来」，前端本体由 Vite 负责：
+  //   dev    Vite dev server（5173）跑在前端包目录，/api 反代到这里
+  //   生产   产物内联在二进制里，这里用 Elysia 静态服务
+  //
+  // 以前 dev 走 Bun 的 HTML import（Bun.serve 的 routes + development:true），
+  // 那套机制依赖 inotify 事件，在跨机器/共享文件系统上完全不工作，而且
+  // 和生产用的打包器不是同一个，行为会对不上。见 docs/decisions.md D-002。
   const app = withStaticFiles(createApp(), resolvePublicDir(options.publicDir));
   app.listen({ port, hostname });
   console.log(`ReiNAS Controller ${VERSION} listening on http://${hostname}:${port}`);

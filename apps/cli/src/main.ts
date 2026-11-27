@@ -16,10 +16,10 @@ import { DEFAULT_PORT } from "@reinas/shared";
 const USAGE = `ReiNAS Controller ${getVersion()}
 
 用法:
-  reinas serve [--port <n>] [--host <addr>] [--dev]
+  reinas serve [--port <n>] [--host <addr>]
                                                   启动 HTTP 服务
-                                                  --dev 用 Bun 的全栈 dev server，
-                                                  前端改动走 HMR
+                                                  （开发时的前端热更新由 Vite
+                                                  负责，见 vite.config.ts）
   reinas info                                     打印系统信息
   reinas --version                                版本号
   reinas --help                                   这份帮助
@@ -68,11 +68,9 @@ async function cmdServe(flags: Map<string, string>): Promise<void> {
     process.exit(1);
   }
 
-  const dev = flags.has("dev");
   await serve({
     port,
     hostname: flags.get("host") ?? "0.0.0.0",
-    dev,
   });
 
   // 服务靠事件循环活着，这里不 return——return 会让进程退出。

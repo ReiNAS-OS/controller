@@ -1,49 +1,32 @@
 /**
- * 构建前端产物到本包的 dist/。
+ * 生产构建：用 Vite 打包前端产物到本包 dist/。
  *
- * 入口是包内的 index.html——和生产 dev server 用的是同一个文件。Bun 的打包器
- * 读 HTML，把里面引用的 .tsx 打成一个 bundle，产出到 dist/。
+ * **和 dev 用同一个打包器**（都读 vite.config.ts）。这是刻意的：
+ * 两套打包器（比如 dev 用 Vite、构建用 Bun 打包）会有行为漂移，dev 能跑
+ * 的写法构建出来可能白屏。同一个 config、同一个插件链，才能保证"本地
+ * 看到的就是部署后的样子"。
  *
- * **产物放在包内而不是仓库根**：turbo 只能缓存和恢复「包目录下」的 outputs。
- * 产物落在仓库根时，turbo 缓存命中只重放日志、不恢复文件，删掉产物再构建会
- * 得到空目录。放在这里 turbo 会正确缓存和恢复。
+ * 产物位置：packages/web/dist/，由 apps/cli 的构建脚本内联进二进制。
+ * 必须在包目录内——turbo 只缓存包目录下的 outputs（见 D-003）。
  */
 
-import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { build } from "vite";
 
-// 脚本在 packages/web/scripts/，包根是上一级
-const pkgRoot = join(import.meta.dir, "..");
-const entry = join(pkgRoot, "index.html");
-const outdir = join(pkgRoot, "dist");
+const started = Date.now();
 
-if (!existsSync(entry)) {
-  console.error(`找不到前端入口: ${entry}`);
-  process.exit(1);
-}
-
-const result = await Bun.build({
-  entrypoints: [entry],
-  outdir,
-  target: "browser",
-  minify: true,
-  sourcemap: "none",
-  define: {
-    "process.env.NODE_ENV": '"production"',
-  },
-});
-
-if (!result.success) {
+try {
+  await build({
+    // 让 Vite 用本包的 vite.config.ts。不传 inline config，避免两处
+    // 配置漂移——配置文件是唯一真相。
+    configFile: new URL("../vite.config.ts", import.meta.url).pathname,
+    mode: "production",
+    logLevel: "info",
+  });
+} catch (err) {
   console.error("前端构建失败：");
-  for (const log of result.logs) {
-    console.error(" ", log);
-  }
+  console.error(err instanceof Error ? err.message : String(err));
   process.exit(1);
 }
 
-const sizes = result.outputs.map((o) => {
-  const name = o.path.replace(`${outdir}/`, "");
-  return `  ${(o.size / 1024).toFixed(1)} KB  ${name}`;
-});
-console.log(`✅ 前端产物 → ${outdir}`);
-console.log(sizes.join("\n"));
+const elapsed = ((Date.now() - started) / 1000).toFixed(1);
+console.log(`✅ 前端产物 → ${new URL("../dist", import.meta.url).pathname}（${elapsed}s）`);

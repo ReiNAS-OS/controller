@@ -7,8 +7,8 @@ ReiNAS 的 Web 控制器。跑在 NAS 上，提供桌面式 Web 界面和命令�
 **单二进制交付**：`reinas` 是唯一可执行文件，`reinas serve` 启动 HTTP 服务，
 前端产物编译时嵌入。**NAS 上不需要 node / bun / 任何 JS 运行时。**
 
-**技术栈**：bun 1.4 / ElysiaJS / React 19（Bun 打包器，不用 Vite，手写 CSS 不
-用 UI 库）/ turbo 编排 / oxlint + oxfmt + lefthook / 类型检查走 `tsrs`
+**技术栈**：bun 1.4 / ElysiaJS / React 19 / Vite（dev 和 build 同一份配置）
+/ 手写 CSS 不用 UI 库/ turbo 编排 / oxlint + oxfmt + lefthook / 类型检查走 `tsrs`
 （TypeScript 7 的 Rust 移植，**不装原版 typescript**）。
 
 ## 目录
@@ -33,7 +33,7 @@ docs/       详细文档
 
 ```bash
 bun install                    # 装依赖
-bun run dev                    # 单进程 5090，前端 HMR
+bun run dev                    # Vite 5173 + API 5090，前端 HMR
 bun run build                  # turbo 编排全部构建（默认 linux-x64）
 bun run build:linux:arm64      # 显式 aarch64
 bun run build:linux:x86_64     # 显式 x86-64
@@ -45,15 +45,21 @@ bun run test:linux             # 在 fedora:45 容器里验证（5 秒）
 
 ## 开发流程
 
-**前端在宿主机跑，虚机只验证后端。** 改 `.tsx` 立刻生效。
+**前端在宿主机（Vite），后端在 Linux 虚机。** 改 `.tsx` 立刻生效。
 
 ```bash
-bun run dev                        # 宿主机，5090，HMR 正常
-cd ../os && ./scripts/vm.sh dev    # 要验证真 Linux 命令输出时才进虚机
+cd ../os && ./scripts/vm.sh dev                      # 虚机，转发 5090
+REINAS_API_TARGET=http://127.0.0.1:5090 bun run dev  # 宿主，Vite 反代到虚机
 ```
 
-dev server 不监听文件系统，虚机里改前端代码不会自动重载——细节见
-`docs/testing.md`。
+为什么后端要在虚机：面板的功能全要调 `lsblk` / `btrfs` / `useradd` / `/proc`，
+macOS 上这些都不存在。
+
+为什么前端要在宿主机：共享文件系统（9p / vboxsf / NFS）不投递 inotify 事件，
+Vite/Bun 的文件监听在挂载目录上不触发。前端回本地盘才正常。
+
+**dev 和 build 必须用同一个打包器**（都是 Vite，同一份 `vite.config.ts`）。
+两套打包器会有行为漂移——本地能跑、构建出来白屏。见 `docs/decisions.md` D-002。
 
 ## 这个项目特有的坑
 
@@ -66,7 +72,7 @@ dev server 不监听文件系统，虚机里改前端代码不会自动重载—
 5. 本地 macOS 跑通不代表 Fedora 跑通 —— 用 `test:linux` 容器测
 6. 不要装原版 `typescript` —— 类型检查走 `tsrs`
 7. `TARGET` 必须写进 `turbo.json` 的 `build.env` —— 否则静默产出错误架构
-8. dev server 不监听文件系统 —— 虚机里改前端要重启
+8. 共享文件系统不投递 inotify —— 前端只能跑在本地盘上
 
 ## 代码规矩
 
